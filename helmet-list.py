@@ -2,10 +2,48 @@
 import requests, bs4, reminders, ui, sound, console
 from objc_util import *
 from ctypes import c_void_p
+import inheritable
 
 #logins = (
 #  ('Name', 'Card_number', 'PIN'), ('...','...','...'))
 from helmetids import logins as logins
+
+class BackgroundBrowser(inheritable.WebView):
+  
+  def __init__(self, **kwargs):
+    self.super().__init__(**kwargs)
+    self.delegate = self
+    self.states = ['initial', 'first', 'loggedin', 'listed', 'renew', 'confirm', 'logout', 'initial']
+    self.state = 'initial'
+    
+  def webview_did_finish_load(self, webview):
+    print(self.state)    
+    if self.state == 'first':
+      js = f'document.getElementsByName("code")[0].value = "{logins[1][1]}"; document.getElementsByName("pin")[0].value = "{logins[1][2]}"; document.getElementById("fm1").submit();'
+      self.state = 'loggedin'
+      self.eval_js(js)
+    elif self.state == 'loggedin':
+      content = self.eval_js('ifr = document.getElementById("accountContentIframe").contentWindow; ifr.submitCheckout( "requestRenewAll", "requestRenewAll" );')
+      self.state = 'renew1'
+    elif self.state == 'renew1':
+      #print(self.eval_js('document.getElementById("accountContentIframe").contentDocument.body.innerHTML'))
+      content = self.eval_js('ifr = document.getElementById("accountContentIframe").contentWindow; ifr.submitCheckout( "renewall", "renewall_" );')
+      self.state = 'logout'
+    elif self.state == 'logout':
+      self.load_url('https://haku.helmet.fi:443/iii/mobile/logoutFilterRedirect?suite=mobile')
+      self.state = 'loggedout'
+    
+  def webview_did_fail_load(self, webview, error_code, error_msg):
+    print(error_code, error_msg)
+    self.state = 'error'
+    
+browsery = BackgroundBrowser()
+
+def renew_loans():
+  global browsery
+  browsery.present()
+  browsery.state = 'first'
+  browsery.load_url('https://haku.helmet.fi/iii/mobile/myaccount?lang=fin&suite=mobile')
 
 list_name = 'Kirjaston kirjat'
 
@@ -16,6 +54,7 @@ def get_books(card_number, pin, book_list):
   page = s.get('https://haku.helmet.fi/iii/mobile/myaccount?lang=fin&suite=mobile')
 
   soup = bs4.BeautifulSoup(page.text, 'html5lib')
+  print(page.text)
   action_url = 'https://luettelo.helmet.fi' + soup.find(id='fm1').get('action')
 
   inputs = soup.find_all('input')
@@ -36,8 +75,8 @@ def get_books(card_number, pin, book_list):
   content_url = soup.find(id='accountContentIframe').get('src')
   
   content_page = s.get(content_url)
-  print('_'*100)
-  print(content_page.text)
+  #print('_'*100)
+  #print(content_page.text)
   soup = bs4.BeautifulSoup(content_page.text, 'html5lib')
   
   entry_class = 'patFuncEntry'
@@ -152,6 +191,9 @@ if __name__ == '__main__':
     
     action = console.alert('Helmet', button1='Uusi lainat', button2='Hae ja skannaa', button3='Hae lainat')
     if not action: break
+    
+    if action == 1:
+      renew_loans()
     
     if action != 1:
       for (name, card_number, pin) in logins:
