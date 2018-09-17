@@ -49,23 +49,13 @@ class View(AttributeWrapper, styleproperties.StyleProps):
     name = name or type(self).__name__
     self.tint_color = tint_color
     self.id = str(uuid.uuid4())[-12:]
-    self.default_left = 0
-    self.default_top = 0
-    self.default_width = Flex(self, WIDTH)
-    self.default_height = Flex(self, HEIGHT)
-    self.default_layout_offset = 0
     self.children = []
     self._anchors = {}
     self._dependents = set()
     self.root = parent.root
     self.name = self.root.add_child_for(self, parent, name)
-    self.x = 0
-    self.y = 0
-    self.width = At(parent, WIDTH)
-    self.height = At(parent, HEIGHT)
-    self.inset = 0
+    self.margin = 5
     self.style()
-    self._refresh_position()     
       
   def _refresh_position(self):
     for prop in (TOP, LEFT, WIDTH, HEIGHT):
@@ -102,12 +92,13 @@ class View(AttributeWrapper, styleproperties.StyleProps):
   #Section: Anchor helpers
     
   def _set_anchor(self, prop, value):
+    if value == Refresh:
+      return self._resolve_anchor(prop)
     self._anchors[prop] = value
     if type(value) is At:
       value.ref._dependents.add((self, prop))
     actual_value = self._resolve_anchor(prop)
-    for dependent, dep_prop in self._dependents:
-      dependent._refresh_anchor(dep_prop)
+    self.root.update_dependencies(self)
     return actual_value
     
   def _resolve_anchor(self, prop):
@@ -118,196 +109,125 @@ class View(AttributeWrapper, styleproperties.StyleProps):
     else:
       return anchor.resolve()
     return None
-      
-  def _refresh_anchor(self, prop):
-    anchor = self._anchors[prop]
-    _set(self, prop, anchor)
-    # was: type(self).__dict__[prop].fset(self, anchor)
-    # was: prop.fset(self, anchor)
-    
-  def _resolve_horizontal(self, horizontal=True):
-    if horizontal:
-      left = self._resolve_anchor(LEFT)
-      right = self._resolve_anchor(RIGHT)
-      width = self._resolve_anchor(WIDTH)
-      center = self._resolve_anchor(CENTER)
-    else:
-      left = self._resolve_anchor(TOP)
-      right = self._resolve_anchor(BOTTOM)
-      width = self._resolve_anchor(HEIGHT)
-      center = self._resolve_anchor(MIDDLE)
-    if left is None:
-      if right is not None and center is not None:
-        left = right - (right-center)
-        # check center
-      elif width is not None and center is not None:
-        left = center - width/2
-        # check right
-      elif right is not None and width is not None:
-        left = right - width
-      elif right is not None or center is not None:
-        width = self.default_width
-        if right is not None:
-          left = right - width
-        elif center is not None:
-          left = center - width/2
-      else:
-        left = self.default_left
-    if width is None:
-      if right is not None:
-        width = right - left
-        # check center
-      elif center is not None:
-        width = (center - left)*2
-      else:
-        width = self.default_width
-    if right is None:
-      right = left + width
-      # check center
-    if center is None:
-      center = (left + right)/2
-    if horizontal:
-      return ns(left=left, right=right, center=center, width=width)
-    else:
-      return ns(top=left, bottom=right, middle=center, height=width)
-    
-  def _resolve_vertical(self):
-    return self._resolve_horizontal(horizontal=False)
     
   def js(self):
     return JSWrapper(self.root).by_id(self.id)
 
+  def _getr(self, prop, prop2=None):
+    value = float(self.js().abs_style(prop).strip('px'))
+    if prop2:
+      value2 = float(self.js().abs_style(prop2).strip('px'))
+      value = value + value2/2
+    return value
+    
+  def _setr(self, prop, value, reverse_prop=None):
+    if reverse_prop and isinstance(value, At):
+      value.receiver = (self, reverse_prop)
+    value = self._set_anchor(prop, value)
+    value = 'null' if value is None else f'{value}px'
+    self.js().set_style(prop, value)
+
   @property
   def left(self):
-    "left"
-    value = self._resolve_anchor(LEFT)
-    if value is None:
-      value = self._resolve_horizontal().left
-    return value
+    return self._getr(LEFT)
     
   @left.setter
   def left(self, value):
-    value = self._set_anchor(LEFT, value)
-    self.js().set_style('left', f'{value}px')
+    self._setr(LEFT, value)
     
   x = left
     
   @property
   def top(self):
-    "top"
-    value = self._resolve_anchor(TOP)
-    if value is None:
-      value = self._resolve_vertical().top
-    return value
+    return self._getr(TOP)
     
   @top.setter
   def top(self, value):
-    value = self._set_anchor(TOP, value)
-    self.js().set_style('top', f'{value}px')
+    self._setr(TOP, value)
     
   y = top
     
   @property
   def width(self):
-    "width"    
-    value = self._resolve_anchor(WIDTH)
-    if value is None:
-      value = self._resolve_horizontal().width
-    return value
+    return self._getr(WIDTH)
     
   @width.setter
   def width(self, value):
-    value = self._set_anchor(WIDTH, value)
-    if type(value) is not Flex:
-      self.js().set_style('width', f'{value}px')
+    self._setr(WIDTH, value)
     
   @property
   def height(self):
-    "height"
-    value = self._resolve_anchor(HEIGHT)
-    if value is None:
-      value = self._resolve_vertical().height
-    return value
+    return self._getr(HEIGHT)
     
   @height.setter
   def height(self, value):
-    value = self._set_anchor(HEIGHT, value)
-    if type(value) is not Flex:
-      self.js().set_style('height', f'{value}px')
+    self._setr(HEIGHT, value)
     
   @property
   def right(self):
-    "right"
-    value = self._resolve_anchor(RIGHT)
-    if value is None:
-      value = self._resolve_horizontal().right
-    return value
+    return self._getr(RIGHT)
     
   @right.setter
   def right(self, value):
-    value = self._set_anchor(RIGHT, value)
-    left = value - self.width
-    self.js().set_style('left', f'{left}px')
+    self._setr(RIGHT, value, reverse_prop=WIDTH)
     
   @property
   def bottom(self):
-    "bottom"
-    value = self._resolve_anchor(BOTTOM)
-    if value is None:
-      value = self._resolve_vertical().bottom
-    return value
+    return self._getr(BOTTOM)
     
   @bottom.setter
   def bottom(self, value):
-    value = self._set_anchor(BOTTOM, value)
-    top = value - self.height
-    self.js().set_style('top', f'{top}px')
+    self._setr(BOTTOM, value, reverse_prop=HEIGHT)
     
   @property
   def center(self):
-    value = self._resolve_anchor(CENTER)
-    if value is None:
-      value = self._resolve_horizontal().center
-    return value
+    return self._getr(LEFT, WIDTH)
     
   @center.setter
   def center(self, value):
     value = self._set_anchor(CENTER, value)
-    left = value - self.width/2
-    self.js().set_style('left', f'{left}px')
+    if value is None:
+      value = 'null'
+    else:
+      value = value - self.width/2
+      value = f'{value}px'
+    self.js().set_style('left', value)
     
   @property
   def middle(self):
-    value = self._resolve_anchor(MIDDLE)
-    if value is None:
-      value = self._resolve_vertical().middle
-    return value
+    return self._getr(TOP, HEIGHT)
 
   @middle.setter
   def middle(self, value):
     value = self._set_anchor(MIDDLE, value)
-    top = value - self.height/2
-    self.js().set_style('top', f'{top}px')
+    if value is None:
+      value = 'null'
+    else:
+      value = value - self.height/2
+      value = f'{value}px'
+    self.js().set_style('top', value)
 
   @property
-  def inset(self):
-    return (self.inset_top, self.inset_right, self.inset_bottom, self.inset_left)
+  def margin(self):
+    return (self.margin_top, self.margin_right, self.margin_bottom, self.margin_left)
     
-  @inset.setter
-  def inset(self, value):
+  @margin.setter
+  def margin(self, value):
     "Insets to be applied to flexible layout values. 1-4 pixel values (or percentages?)."
     if type(value) in [int, float]:
-      insets = (value,)*4
+      margins = (value,)*4
     elif type(value) in [list, tuple]:
       if len(value) == 1:
-        insets = (value[0],)*4
+        margins = (value[0],)*4
       elif len(value) == 2:
-        insets = (value[0], value[1])*2
+        margins = (value[0], value[1])*2
       elif len(value) == 3:
-        insets = (value[0], value[1], value[2], value[1])
+        margins = (value[0], value[1], value[2], value[1])
       elif len(value) == 4:
-        insets = value
-    self.inset_top, self.inset_right, self.inset_bottom, self.inset_left = insets
+        margins = value
+    self.margin_top, self.margin_right, self.margin_bottom, self.margin_left = margins
+    js = f'{self.margin_top}px {self.margin_right}px {self.margin_bottom}px {self.margin_left}px'
+    self.js().set_style('margin', js)
 
   def stretch_all(self):
     pass
@@ -321,14 +241,14 @@ class View(AttributeWrapper, styleproperties.StyleProps):
   def dock_top(self, share=0.25):
     self.left = 0
     self.top = 0
-    self.width = At(self.parent, WIDTH)
-    self.height = At(self.parent, HEIGHT, multiplier=share)
+    self.right = 0
+    self.height = Height(self.parent, multiplier=share)
     
   def dock_bottom(self, share=0.25):
     self.left = 0
-    self.bottom = At(self.parent, HEIGHT)
-    self.width = At(self.parent, WIDTH)
-    self.height = At(self.parent, HEIGHT, multiplier=share)
+    self.bottom = 0
+    self.right = 0
+    self.height = Height(self.parent, multiplier=share)
     
   @classmethod
   def dock_left(cls):
@@ -355,6 +275,9 @@ class View(AttributeWrapper, styleproperties.StyleProps):
     pass
     
     
+class Refresh():
+  "When used to set a property value, instead refreshes from the anchor value."
+    
 class Box(View):
   
   def style(self):
@@ -367,16 +290,8 @@ class Label(Box):
   def style(self):
     super().style()
     c = self.content = Box(self, tint_color='black')
-    c.width = Flex(c, WIDTH)
-    c.height = Flex(c, HEIGHT)
     c.center = At(self, WIDTH, multiplier=0.5)
     c.middle = At(self, HEIGHT, multiplier=0.5)
-    
-    #self.js().set_content("<div class='content' style='position: absolute; top: 0; left: 0; right: 0; bottom: 0;'></div>")
-    #self.js().set_content("<div class='content' style='position: relative;'></div>")
-    #self.js().set_style('textAlign', CENTER)
-    #self.js().set_style('margin', 'auto')
-    #self.js().set_style('verticalAlign', 'middle')
     
   @property
   def text(self):
@@ -387,40 +302,65 @@ class Label(Box):
     #self.content.js().set_style('width', 'auto')
     #self.content.js().set_style('height', 'auto')
     self.content.js().set_content(value)
+    self.content.center = At(self, WIDTH, multiplier=0.5)
+    self.content.middle = At(self, HEIGHT, multiplier=0.5)
     #print(self.content.js().style('height'))
 
 
 class At():
-  def __init__(self, ref, prop, offset=0, multiplier=None):
+  
+  from_origin = True
+  
+  def __init__(self, ref, prop, multiplier=None, offset=0):
     self.ref = ref
     self.prop = prop
     self.offset = offset
     self.multiplier = multiplier
+    self.edge_prop = None
+    self.receiver = None
 
   def resolve(self):
     result = _get(self.ref, self.prop)
+    if not self.from_origin:
+      result = _get(self.ref.parent, self.invert_prop) - result
+    if self.receiver: # is inverted
+      result = _get(self.receiver[0].parent, self.receiver[1]) - result
     if type(self.multiplier) is str:
       self.multiplier = float(self.multiplier.strip('%'))/100
     result *= self.multiplier or 1
     result += self.offset
     return result
-
-class Flex():
-  def __init__(self, view, prop):
-    self.view = view
-    self.prop = prop
     
-  def resolve(self):
-    prop_actual = 'clientWidth' if self.prop == WIDTH else 'clientHeight'
-    js = f'document.getElementById("{self.view.id}").style.{self.prop}'
-    print(js)
-    print(self.view.root.eval_js(js))
-    print(self.view.js().style(self.prop))
+  def from_edge(self, result):
+    return _get(self.ref, self.edge_prop) - result
 
-    value = self.view.js().dot(prop_actual).evaluate()
-    #print(value)
-    value = float(value.strip('px'))
-    return value
+class Top(At):
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, TOP, multiplier, offset)
+class Left(At):
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, LEFT, multiplier, offset)
+class Width(At):
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, WIDTH, multiplier, offset)
+class Height(At):
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, HEIGHT, multiplier, offset)
+
+class FromEdge(At):
+  from_origin = False
+class Right(FromEdge):
+  invert_prop = WIDTH
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, RIGHT, multiplier, offset)
+class Bottom(FromEdge):
+  invert_prop = HEIGHT
+  def __init__(self, ref, multiplier=None, offset=0):
+    super().__init__(ref, BOTTOM, multiplier, offset)
+
+def _to_edge(view, prop, value):
+  return _get(view, prop) - value
+  
 
 class Root():
   
@@ -474,8 +414,8 @@ class Root():
     return value
     
   def on_resize(self, view):
-    for dependent, dep_prop in self._dependents:
-      dependent._refresh_anchor(dep_prop)
+    print('refreshing')
+    self.update_dependencies(view)
     
   def register_event_handler(self, view, event_name, handler):
     self.event_handlers[view.id+event_name] = handler
@@ -510,6 +450,27 @@ class Root():
     parent_elem.append(child.render())
     return name
     
+  def update_dependencies(self, changed_view):
+    seen = set()
+    deps_per_view = {}
+    visit_queue = [changed_view]
+    update_queue = []
+    while visit_queue:
+      view = visit_queue.pop(0)
+      for dep_view, dep_prop in view._dependents:
+        if (dep_view, dep_prop) in seen:
+          raise RecursionError(f'Cyclical layout dependency involving {changed_view.name}{(", " + view.name) if changed_view is not view else ""} and {dep_view.name}')
+        seen.add((dep_view, dep_prop))
+        visit_queue.append(dep_view)
+        deps_per_view.setdefault(dep_view, []).append(dep_prop)
+        try:
+          update_queue.remove(dep_view)
+        except ValueError: pass
+        update_queue.append(dep_view)
+    for dep_view in update_queue:
+      for dep_prop in deps_per_view[dep_view]:
+        _set(dep_view, dep_prop, Refresh)
+    
   def eval_js(self, js):
     return self.webview.eval_js(js)
     
@@ -531,7 +492,7 @@ class UI(inheritable.WebView):
   def webview_did_finish_load(self, webview):
     self.init(self.root)
     self.root.register_resize_handler(self.root, self.root.on_resize)
-    self.present('full_screen', hide_title_bar=True, hide_close_button=True)
+
     #print(self.root.webview.eval_js(f'document.body.innerHTML'))
     
   def webview_should_start_load(self, webview, url, nav_type):
@@ -560,19 +521,28 @@ if __name__ == '__main__':
     def init(self, root):
       v = Label(root, tint_color='blue')
       v.on_click = click_handler
-      v.dock_top(share = .5)
-      v.text = 'Testing with paljon enemmän tärkeää tekstiä joka varmasti täyttää koko systeemin'
-      #v.align_vertical = MIDDLE
+      v.dock_top(.3)
+      v.text = 'Testing with text that shows font formatting, contains unicode characters (åäö) and is long enough'
       
       v2 = Box(root, tint_color='red')
-      v2.dock_bottom(share='20%')
+      v2.dock_bottom('20%')
       
       v3 = Box(root, tint_color='orange')
-      v3.dock_bottom(share='20%')
+      v3.top = Bottom(v)
+      v3.bottom = Top(v2)
+      v3.left = 0
+      v3.right = Width(root, 0.7)
+      v3.js().set_style('margin', '5px')
+      #v3.right = At(root, WIDTH)
       
+      '''
       v4 = Box(root, tint_color='green')
-      v4.dock_bottom(share='20%')
+      v4.top = At(v, BOTTOM)
+      v4.height = At(root, HEIGHT, .3)
+      v4.width = At(root, WIDTH, .7)
+      '''
 
       #print('Content', self.eval_js('document.body.innerHTML'))
   
   webview = TestUI()
+  webview.present('full_screen', hide_title_bar=True, hide_close_button=True)
