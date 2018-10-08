@@ -1,5 +1,5 @@
 #coding: utf-8
-import ui, json
+import ui, json, uuid
 
 class JSWrapper():
   
@@ -157,6 +157,13 @@ class JSWrapper():
     js_args = [f'"{item}"' if type(item) == str else str(item) for item in args]
     JSWrapper(self, f'elem.{func_name}({js_args})').evaluate()
     
+  def callback(self, func, delay=1.0):
+    callback_id = self.target_webview.delegate.set_callback(func)
+    delay_ms = delay * 1000
+    js = f'setTimeout(function(){{ window.location.href = "{self.target_webview.delegate.callback_prefix}{callback_id}"; }}, {delay_ms});'
+    print(js)
+    JSWrapper(self, js).evaluate()
+    
   def evaluate(self):
     #print(self.js)
     return self.target_webview.eval_js(self.js)
@@ -169,6 +176,9 @@ class JSWrapper():
 
 
 class WebScraper(JSWrapper):
+  
+  callback_prefix = 'pythonista-callback://'
+  callbacks = {}
   
   def __init__(self, webview):
     super().__init__(webview)
@@ -185,10 +195,24 @@ class WebScraper(JSWrapper):
   def webview_did_finish_load(self, webview):
     url = webview.eval_js('document.URL')
     print('Page:', url)
-    expected_prefix = self.url_map[self.handler]
+    expected_prefix = self.url_map.get(self.handler, 'No action')
     if url.startswith(expected_prefix):
       print('Handler:', self.handler.__name__)
       self.handler()
+      
+  def set_callback(self, func):
+    callback_id = str(uuid.uuid4())[-12:]
+    self.callbacks[callback_id] = func
+    return callback_id
+      
+  def webview_should_start_load(self, webview, url, nav_type):
+    if url.startswith(self.callback_prefix):
+      callback_id = url[len(self.callback_prefix):]
+      callback_func = self.callbacks[callback_id]
+      del self.callbacks[callback_id]
+      ui.delay(callback_func, 0.001)
+      return False
+    return True
     
   def webview_did_fail_load(self, webview, error_code, error_msg):
     if error_code != -999:
