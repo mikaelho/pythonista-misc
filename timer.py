@@ -119,9 +119,7 @@ class TimeSelection(ui.View):
         b.tint_color = 'grey'
       self.times.append(b)
       b.action = self.go_to_timer
-      self.add_subview(b)
-
-      
+      self.add_subview(b)      
         
   def layout(self):
     insets = self.objc_instance.safeAreaInsets()
@@ -141,7 +139,10 @@ class TimeSelection(ui.View):
         cell_height
       )
       b.frame = frame
-      b.frame = b.frame.inset(10,10)
+      center = b.center
+      b.size_to_fit()
+      b.center = center
+      #b.frame = b.frame.inset(10,10)
       
   def go_to_timer(self, sender):
     if self.first_time:
