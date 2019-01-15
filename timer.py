@@ -101,6 +101,55 @@ class TimeSelection(ui.View):
   rows = 4
   cell_font = timer_font_size/(times_per_row+1)
   first_time = True
+
+  @property 
+  def masks_to_bounds(self):
+    return self.pntr.layer().masksToBounds()
+        
+  @masks_to_bounds.setter
+  def masks_to_bounds(self, val):
+    self.pntr.layer().setMasksToBounds_(val)
+  
+  @property
+  def shadow_opacity(self):
+    return self.pntr.layer().shadowOpacity()
+        
+  @shadow_opacity.setter
+  def shadow_opacity(self, val):
+    self.pntr.layer().setShadowOpacity_(val)
+        
+  @property
+  def shadow_radius(self):
+    return self.pntr.layer().shadowRadius()
+        
+  @shadow_radius.setter
+  def shadow_radius(self, val):
+    self.pntr.layer().setShadowRadius_(val)
+        
+  @property
+  def shadow_offset(self):
+    return self.pntr.layer().shadowOffset()
+        
+  @shadow_offset.setter
+  def shadow_offset(self, offset):
+    self.pntr.layer().setShadowOffset_(CGSize(*offset))
+            
+  @property
+  def shadow_color(self):
+    return self.pntr.layer().shadowColor()
+        
+  @shadow_color.setter
+  def shadow_color(self, color):
+    (red, green, blue, alpha) = parse_color(color)
+    objc_color = ObjCClass('UIColor').colorWithRed_green_blue_alpha_(red, green, blue, alpha).CGColor()
+    
+    self.pntr.layer().setShadowColor_(objc_color)
+    
+  def set_drop_shadow(self, color):
+    self.shadow_opacity = 1
+    self.shadow_offset = (5,5)
+    self.shadow_color = color
+    self.shadow_radius = 5  
   
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
