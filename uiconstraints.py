@@ -232,11 +232,7 @@ class Constraint:
     if self.objc_constraint:
       return self.objc_constraint.isActive()
       
-  @active.setter
-  def active(self, value):
-    if self.objc_constraint:
-      self.objc_constraint.setActive_(value)
-   
+  '''
   @classmethod 
   def activate(cls, *constraints):
     for constraint in constraints:
@@ -244,6 +240,18 @@ class Constraint:
         Constraint.activate(*constraint)
       else:
         constraint.active = True
+  '''
+        
+  @classmethod
+  def constraints_by_attribute(cls, view, attribute, active_only=True):
+    constraints = getattr(view, 'layout_constraints', [])
+    result = []
+    for constraint in constraints:
+      if active_only and not constraint.active:
+        continue
+      if attribute == cls.characteristics[constraint.attribute][0]:
+        result.append(constraint)
+    return result
         
   @classmethod
   def deactivate(cls, *constraints):
@@ -252,7 +260,7 @@ class Constraint:
       if type(constraint) in (tuple, list):
         Constraint.deactivate(*constraint)
       else:
-        constraint.active = False
+        self.objc_constraint.setActive_(False)
 
   @classmethod
   def margin_inset(cls, view):
@@ -272,20 +280,108 @@ class Constraint:
   TIGHT = 0
   MARGIN = 1
   SAFE = 2
+  default_fit = MARGIN
     
   @classmethod
-  def dock_top(cls, view, share=None, margin=MARGIN):
-    constraints = c = []
+  def _fit(cls, view, fit):
     s = view.superview
+    if fit == C.TIGHT:
+      return C(s)
+    elif fit == C.MARGIN:
+      return C(s).margins
+    elif fit == C.SAFE:
+      return C(s).safe_area
+    
+  @classmethod
+  def dock_all(cls, view, constant=0, fit=default_fit):
     C = Constraint
-    if margin == C.MARGIN:
-      c.append(C(view).top == C(s).top_margin)
-      c.append(C(view).leading == C(s).leading_margin)
-      c.append(C(view).trailing == C(s).trailing_margin)
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    C(view).leading == C._fit(view, fit).leading + constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    
+  @classmethod
+  def dock_center(cls, view, share=None):
+    C = Constraint
+    s = view.superview
+    C(view).center_x == C(s).center_x
+    C(view).center_y == C(s).center_y
+    cls._set_size(view, share)
+    
+  @classmethod
+  def _set_size(cls, view, share):
+    if share is not None:
+      share_x, share_y = share if type(share) in (list, tuple) else (share, share)
+      C(view).width == C(view.superview).width * share_x
+      C(view).height == C(view.superview).height * share_y
+    
+  @classmethod
+  def dock_top(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).leading == C._fit(view, fit).leading + constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
     if share is not None:
       
-      c.append(C(view).height == C(s).height * share)
-    return constraints
+      C(view).height == C(view.superview).height * share
+    
+  @classmethod
+  def dock_bottom(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    C(view).leading == C._fit(view, fit).leading + constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    if share is not None:
+      
+      C(view).height == C(view.superview).height * share
+    
+  @classmethod
+  def dock_leading(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).leading == C._fit(view, fit).leading + constant
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    if share is not None:
+      
+      C(view).width == C(view.superview).width * share
+    
+  @classmethod
+  def dock_trailing(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    if share is not None:
+      
+      C(view).width == C(view.superview).width * share
+    
+  @classmethod
+  def dock_top_leading(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).leading == C._fit(view, fit).leading + constant
+    cls._set_size(view, share)
+    
+  @classmethod
+  def dock_top_trailing(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    cls._set_size(view, share)
+    
+  @classmethod
+  def dock_bottom_leading(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    C(view).leading == C._fit(view, fit).leading + constant
+    cls._set_size(view, share)
+    
+  @classmethod
+  def dock_bottom_trailing(cls, view, share=None, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).bottom == C._fit(view, fit).bottom - constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    cls._set_size(view, share)
     
   @on_main_thread
   def _create_constraint(self, other):
@@ -307,6 +403,10 @@ class Constraint:
     if view_first_seen: 
       self.view.objc_instance.setTranslatesAutoresizingMaskIntoConstraints_(False)
       C._set_defaults(self.view)
+      
+    layout_constraints = getattr(self.view, 'layout_constraints', [])
+    layout_constraints.append(self)
+    self.view.layout_constraints = layout_constraints
     
     self.objc_constraint = NSLayoutConstraint.\
     PG_constraintWithItem_attribute_relatedBy_toItem_attribute_multiplier_constant_priority_(
@@ -325,8 +425,8 @@ class Constraint:
     if self.other_view:
       retain_global(self.other_view)
     
-    self.active = True
-    
+    self.objc_constraint.setActive_(True)
+   
     
   @classmethod
   def _set_defaults(cls, view):
@@ -351,11 +451,10 @@ if __name__ == '__main__':
   button = ui.Button(background_color='blue', tint_color='white', title='Go')
   root.add_subview(button)
   
-  textfield.constraints = C.dock_top(textfield, 0.3)
+  C.dock_center(textfield, (0.9, 0.1))
   
-  c = textfield.constraints[1]
-  c.active = False
-  c.active = True
+  for c in C.constraints_by_attribute(textfield, C.height):
+    print(c)
   
   '''
   guide = C.create_guide(root)
