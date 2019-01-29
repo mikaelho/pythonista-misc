@@ -1,11 +1,15 @@
 #coding: utf-8
 from objc_util import *
+import ui
 from types import SimpleNamespace
+from copy import copy
 
 NSLayoutConstraint = ObjCClass('NSLayoutConstraint')
 UILayoutGuide = ObjCClass('UILayoutGuide')
 
-class Constraint:
+class Constrain:
+  
+  autofit_types = [ui.Button, ui.Label]
   
   def __init__(self, view, priority=1000):
     self.view = view
@@ -16,7 +20,6 @@ class Constraint:
     self.multiplier = 1
     self._constant = 0
     self._priority = priority
-    
     self.objc_constraint = None
     
   @property
@@ -33,19 +36,19 @@ class Constraint:
     return f'{type(self.view).__name__}.{self.attribute} {self.operator} {type(self.other_view).__name__}.{self.other_attribute} * {self.multiplier} + {self.constant}'
     
   def __mul__(self, other):
-    self.multiplier = other
+    self.multiplier *= other
     return self
     
   def __truediv__(self, other):
-    self.multiplier = 1/other
+    self.multiplier *= 1/other
     return self
     
   def __add__(self, other):
-    self.constant = other
+    self._constant += other
     return self
     
   def __sub__(self, other):
-    self.constant = -other
+    self._constant -= other
     return self
     
   def __le__(self, other):
@@ -65,49 +68,58 @@ class Constraint:
     
   @property
   def no_attribute(self):
-    self.attribute = 0
-    return self
+    c = copy(self)
+    c.attribute = 0
+    return c
     
   @property
   def left(self):
-    self.attribute = 1
-    return self
+    c = copy(self)
+    c.attribute = 1
+    return c
     
   @property
   def right(self):
-    self.attribute = 2
-    return self
+    c = copy(self)
+    c.attribute = 2
+    return c
     
     
   @property
   def top(self):
-    self.attribute = 3
-    return self
+    c = copy(self)
+    c.attribute = 3
+    return c
     
   @property
   def bottom(self):
-    self.attribute = 4
-    return self
+    c = copy(self)
+    c.attribute = 4
+    return c
     
   @property
   def leading(self):
-    self.attribute = 5
-    return self
+    c = copy(self)
+    c.attribute = 5
+    return c
     
   @property
   def trailing(self):
-    self.attribute = 6
-    return self
+    c = copy(self)
+    c.attribute = 6
+    return c
     
   @property
   def width(self):
-    self.attribute = 7
-    return self
+    c = copy(self)
+    c.attribute = 7
+    return c
     
   @property
   def height(self):
-    self.attribute = 8
-    return self
+    c = copy(self)
+    c.attribute = 8
+    return c
     
   @property
   def center_x(self):
@@ -158,34 +170,30 @@ class Constraint:
   def trailing_margin(self):
     self.attribute = 18
     return self
-  
-  position = 0
-  size = 1
-  horizontal = 0
-  vertical = 1
-  na = -1
-        
-  characteristics = {
-    0: (no_attribute, size, na),
-    1: (left, position, horizontal),
-    2: (right, position, horizontal),
-    3: (top, position,vertical),
-    4: (bottom, position, vertical),
-    5: (leading, position, horizontal),
-    6: (trailing, position, horizontal),
-    7: (width, size, horizontal),
-    8: (height, size, vertical),
-    9: (center_x, position, horizontal),
-    10: (center_y, position, vertical),
-    11: (last_baseline, position, vertical),
-    12: (first_baseline, position, vertical),
-    13: (left_margin, position, horizontal),
-    14: (right_margin, position, horizontal),
-    15: (top_margin, position, vertical),
-    16: (bottom_margin, position, vertical),
-    17: (leading_margin, position, horizontal),
-    18: (trailing_margin, position, horizontal)
-  }
+    
+  @property
+  def top_padding(self):
+    self.attribute = 3
+    self._constant -= Constraint.margin_inset(self.view).top
+    return self
+    
+  @property
+  def bottom_padding(self):
+    self.attribute = 4
+    self._constant += Constraint.margin_inset(self.view).bottom
+    return self
+    
+  @property
+  def leading_padding(self):
+    self.attribute = 5
+    self._constant -= Constraint.margin_inset(self.view).leading
+    return self
+    
+  @property
+  def trailing_padding(self):
+    self.attribute = 6
+    self._constant += Constraint.margin_inset(self.view).trailing
+    return self
     
   @property
   def safe_area(self):
@@ -224,7 +232,13 @@ class Constraint:
       
   @priority.setter
   def priority(self, value):
+    if type(value) is not int or value < 1 or value > 1000:
+      raise ValueError('priority must be an integer in the range [1, 1000]')
     if self.objc_constraint:
+      previous_value = objc_constraint.priority()
+      if (value == 1000 and previous_value != 1000) or (value != 1000 and previous_value == 1000):
+        raise ValueError(
+          'Cannot change priority value between required (1000) and lower value')
       self.objc_constraint.setPriority_(value)
       
   @property
@@ -303,10 +317,22 @@ class Constraint:
   @classmethod
   def dock_center(cls, view, share=None):
     C = Constraint
-    s = view.superview
     C(view).center_x == C(s).center_x
     C(view).center_y == C(s).center_y
     cls._set_size(view, share)
+    
+  @classmethod
+  def dock_sides(cls, view, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).leading == C._fit(view, fit).leading + constant
+    C(view).trailing == C._fit(view, fit).trailing - constant
+    
+  dock_horizontal = dock_sides
+    
+  def dock_vertical(cls, view, constant=0, fit=default_fit):
+    C = Constraint
+    C(view).top == C._fit(view, fit).top + constant
+    C(view).bottom == C._fit(view, fit).bottom - constant
     
   @classmethod
   def _set_size(cls, view, share):
@@ -383,9 +409,37 @@ class Constraint:
     C(view).trailing == C._fit(view, fit).trailing - constant
     cls._set_size(view, share)
     
+  position = 0
+  size = 1
+  horizontal = 0
+  vertical = 1
+  na = -1
+        
+  characteristics = {
+    0: (no_attribute, size, na),
+    1: (left, position, horizontal),
+    2: (right, position, horizontal),
+    3: (top, position,vertical),
+    4: (bottom, position, vertical),
+    5: (leading, position, horizontal),
+    6: (trailing, position, horizontal),
+    7: (width, size, horizontal),
+    8: (height, size, vertical),
+    9: (center_x, position, horizontal),
+    10: (center_y, position, vertical),
+    11: (last_baseline, position, vertical),
+    12: (first_baseline, position, vertical),
+    13: (left_margin, position, horizontal),
+    14: (right_margin, position, horizontal),
+    15: (top_margin, position, vertical),
+    16: (bottom_margin, position, vertical),
+    17: (leading_margin, position, horizontal),
+    18: (trailing_margin, position, horizontal)
+  }
+    
   @on_main_thread
   def _create_constraint(self, other):
-    if isinstance(other, C):
+    if isinstance(other, Constraint):
       self.other_view = other.view
       self.other_attribute = other.attribute
       self.constant = other.constant
@@ -393,7 +447,28 @@ class Constraint:
     elif isinstance(other, (int, float)):
       self.constant = other
     else:
-      raise TypeError(f'Cannot use object of type {str(type(other))} in a constraint comparison')
+      raise TypeError(
+        f'Cannot use object of type {str(type(other))} in a constraint comparison: ' + 
+        str(self))
+    
+    a = Constraint.characteristics[self.attribute]
+    b = Constraint.characteristics[self.other_attribute]
+    
+    if a[1] == Constraint.position and (
+      self.multiplier == 0 or
+      self.other_view == None or 
+      self.other_attribute == 0):
+      raise AttributeError(
+        'Location constraints cannot relate to a constant only: ' + str(self))
+    
+    if a[1] != b[1]:
+      raise AttributeError(
+        'Constraint cannot relate location and size attributes: ' + str(self))
+      
+    if a[1] == b[1] == Constraint.position and a[2] != b[2]:
+      raise AttributeError(
+        'Constraint cannot relate horizontal and vertical location attributes: '\
+        + str(self))
     
     try:
       view_first_seen = \
@@ -402,7 +477,9 @@ class Constraint:
       view_first_seen = False
     if view_first_seen: 
       self.view.objc_instance.setTranslatesAutoresizingMaskIntoConstraints_(False)
-      C._set_defaults(self.view)
+      #C._set_defaults(self.view)
+      if type(self.view) in C.autofit_types:
+        C.size_to_fit(self.view)
       
     layout_constraints = getattr(self.view, 'layout_constraints', [])
     layout_constraints.append(self)
@@ -418,23 +495,32 @@ class Constraint:
       self.multiplier,
       self.constant,
       self._priority
-    ).autorelease()
+    ) #.autorelease()
     
-    retain_global(self.objc_constraint)
-    retain_global(self.view)
-    if self.other_view:
-      retain_global(self.other_view)
+    #retain_global(self.objc_constraint)
+    #retain_global(self.view)
+    #if self.other_view:
+    #  retain_global(self.other_view)
     
     self.objc_constraint.setActive_(True)
    
     
   @classmethod
   def _set_defaults(cls, view):
-    (C(view, priority=1).left == C(view.superview).left + view.x)
-    (C(view, priority=1).top == C(view.superview).top + view.y)
+    C = Constraint
     (C(view, priority=1).width == view.width)
     (C(view, priority=1).height == view.height)
+    (C(view, priority=1).left == C(view.superview).left + view.x)
+    (C(view, priority=1).top == C(view.superview).top + view.y)
     
+  @classmethod
+  def size_to_fit(cls, view):
+    size = view.objc_instance.sizeThatFits_((0,0))
+    C = Constraint
+    margins = C.margin_inset(view)
+    C(view, priority=1).width == size.width + margins.leading + margins.trailing
+    C(view, priority=1).height == size.height
+
 
 if __name__ == '__main__':
   
@@ -443,21 +529,87 @@ if __name__ == '__main__':
   
   C = Constraint
   
-  root = ui.View()
+  def style(view):
+    view.background_color='white'
+    view.border_color = 'black'
+    view.border_width = 1
+    view.text_color = 'black'
+    view.tint_color = 'black'
   
-  textfield = ui.TextField()
-  root.add_subview(textfield)
+  root = ui.View(background_color='white')
   
-  button = ui.Button(background_color='blue', tint_color='white', title='Go')
-  root.add_subview(button)
+  search_field = ui.TextField(placeholder='Search path')
+  root.add_subview(search_field)
+  style(search_field)
   
-  C.dock_center(textfield, (0.9, 0.1))
+  search_button = ui.Button(title='Search')
+  root.add_subview(search_button)
+  style(search_button)
   
-  for c in C.constraints_by_attribute(textfield, C.height):
-    print(c)
+  result_area = ui.View()
+  root.add_subview(result_area)
+  style(result_area)
+  
+  done_button = ui.Button(title='Done')
+  root.add_subview(done_button)
+  style(done_button)
+  
+  def done(sender):
+    root.close()
+  done_button.action = done
+  
+  cancel_button = ui.Button(title='Cancel')
+  root.add_subview(cancel_button)
+  style(cancel_button)
+  
+  search_field_c = Constrain(search_field)
+  search_button_c = Constrain(search_button)
+  
+  search_field_c.dock_top_leading()
+  search_field_c.trailing == search_button_c.leading_padding
+  
+  C.dock_top_leading(search_field)
+  C.dock_top_trailing(search_button)
+  C(search_field).trailing == C(search_button).leading_padding
+  C(search_field).height == C(search_button).height
+  
+  C.dock_bottom_trailing(done_button)
+  C(cancel_button).trailing == C(done_button).leading_padding
+  C(cancel_button).top == C(done_button).top
+  
+  C.dock_sides(result_area)
+  C(result_area).top == C(search_button).bottom_padding
+  C(result_area).bottom == C(done_button).top_padding
+  
+  path = 'resources/images/awesome/regular/industry/travel/sun'
+  for component in path.split('/'):
+    label = ui.Label(text=component)
+    style(label)
+    result_area.add_subview(label)
+
+    if len(result_area.subviews) > 1:
+      previous_label = result_area.subviews[-2]
+      
+      C(label).last_baseline >= C(previous_label).last_baseline
+      C(label).trailing <= C(result_area).trailing_margin
+      #C(label, priority=300).top == C(result_area).top_margin
+      C(label, priority=399).top == C(previous_label).top
+
+      C(label, priority=500).leading == C(previous_label).trailing_padding
+      C(label, priority=400).leading == C(result_area).leading_margin
+      C(label, priority=400).top == C(previous_label).bottom_padding
+    else:
+      C(label).top == C(result_area).top_margin
+      C(label).leading == C(result_area).leading_margin
+    previous_label = label
+
+  #for c in C.constraints_by_attribute(textfield, C.height):
+  #  print(c)
   
   '''
   guide = C.create_guide(root)
+  C(guide).left_margin == C(root).left
+
   C(textfield).leading == C(guide).leading
   gap = (C(button).left == C(textfield).right + C.margin_inset(button).leading)
   C(button).trailing == C(guide).trailing
