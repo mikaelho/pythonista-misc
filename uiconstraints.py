@@ -123,77 +123,91 @@ class Constrain:
     
   @property
   def center_x(self):
-    self.attribute = 9
-    return self
+    c = copy(self)
+    c.attribute = 9
+    return c
     
   @property
   def center_y(self):
-    self.attribute = 10
-    return self
+    c = copy(self)
+    c.attribute = 10
+    return c
     
   @property
   def last_baseline(self):
-    self.attribute = 11
-    return self
+    c = copy(self)
+    c.attribute = 11
+    return c
     
   @property
   def first_baseline(self):
-    self.attribute = 12
-    return self
+    c = copy(self)
+    c.attribute = 12
+    return c
     
   @property
   def left_margin(self):
-    self.attribute = 13
-    return self
+    c = copy(self)
+    c.attribute = 13
+    return c
     
   @property
   def right_margin(self):
-    self.attribute = 14
-    return self
+    c = copy(self)
+    c.attribute = 14
+    return c
     
   @property
   def top_margin(self):
-    self.attribute = 15
-    return self
+    c = copy(self)
+    c.attribute = 15
+    return c
     
   @property
   def bottom_margin(self):
-    self.attribute = 16
-    return self
+    c = copy(self)
+    c.attribute = 16
+    return c
     
   @property
   def leading_margin(self):
-    self.attribute = 17
-    return self
+    c = copy(self)
+    c.attribute = 17
+    return c
     
   @property
   def trailing_margin(self):
-    self.attribute = 18
-    return self
+    c = copy(self)
+    c.attribute = 18
+    return c
     
   @property
   def top_padding(self):
-    self.attribute = 3
-    self._constant -= Constraint.margin_inset(self.view).top
-    return self
+    c = copy(self)
+    c.attribute = 3
+    c._constant -= c.margin_inset().top
+    return c
     
   @property
   def bottom_padding(self):
-    self.attribute = 4
-    self._constant += Constraint.margin_inset(self.view).bottom
-    return self
+    c = copy(self)
+    c.attribute = 4
+    c._constant += c.margin_inset().bottom
+    return c
     
   @property
   def leading_padding(self):
-    self.attribute = 5
-    self._constant -= Constraint.margin_inset(self.view).leading
-    return self
+    c = copy(self)
+    c.attribute = 5
+    c._constant -= c.margin_inset().leading
+    return c
     
   @property
   def trailing_padding(self):
-    self.attribute = 6
-    self._constant += Constraint.margin_inset(self.view).trailing
-    return self
+    c = copy(self)
+    c.attribute = 6
+    c._constant += c.margin_inset().trailing
+    return c
     
   @property
   def safe_area(self):
@@ -232,11 +246,15 @@ class Constrain:
       
   @priority.setter
   def priority(self, value):
-    if type(value) is not int or value < 1 or value > 1000:
-      raise ValueError('priority must be an integer in the range [1, 1000]')
+    if type(value) is not int or value < 0 or value > 1000:
+      raise ValueError('priority must be an integer in the range [0, 1000]')
     if self.objc_constraint:
-      previous_value = objc_constraint.priority()
-      if (value == 1000 and previous_value != 1000) or (value != 1000 and previous_value == 1000):
+      previous_value = self.objc_constraint.priority()
+      if self.view.on_screen and \
+      ((value == 1000 and \
+        previous_value != 1000) or \
+      (value != 1000 and \
+        previous_value == 1000)):
         raise ValueError(
           'Cannot change priority value between required (1000) and lower value')
       self.objc_constraint.setPriority_(value)
@@ -245,17 +263,7 @@ class Constrain:
   def active(self):
     if self.objc_constraint:
       return self.objc_constraint.isActive()
-      
-  '''
-  @classmethod 
-  def activate(cls, *constraints):
-    for constraint in constraints:
-      if type(constraint) in (tuple, list):
-        Constraint.activate(*constraint)
-      else:
-        constraint.active = True
-  '''
-        
+
   @classmethod
   def constraints_by_attribute(cls, view, attribute, active_only=True):
     constraints = getattr(view, 'layout_constraints', [])
@@ -276,9 +284,8 @@ class Constrain:
       else:
         self.objc_constraint.setActive_(False)
 
-  @classmethod
-  def margin_inset(cls, view):
-    m = view.objc_instance.directionalLayoutMargins()
+  def margin_inset(self):
+    m = self.view.objc_instance.directionalLayoutMargins()
     return SimpleNamespace(bottom=m.a, leading=m.b, trailing=m.c, top=m.d)
     
   @property
@@ -295,119 +302,115 @@ class Constrain:
   MARGIN = 1
   SAFE = 2
   default_fit = MARGIN
+
+  def _fit(self, fit):
+    s = self.superview
+    if fit == Constrain.TIGHT:
+      return Constrain(s)
+    elif fit == Constrain.MARGIN:
+      return Constrain(s).margins
+    elif fit == Constrain.SAFE:
+      return Constrain(s).safe_area
     
-  @classmethod
-  def _fit(cls, view, fit):
-    s = view.superview
-    if fit == C.TIGHT:
-      return C(s)
-    elif fit == C.MARGIN:
-      return C(s).margins
-    elif fit == C.SAFE:
-      return C(s).safe_area
+  def dock_all(self, constant=0, fit=default_fit):
+    view = self.view
+    self.top == self._fit(fit).top + constant
+    self.bottom == self._fit(fit).bottom - constant
+    self.leading == self._fit(fit).leading + constant
+    self.trailing == self._fit(fit).trailing - constant
     
-  @classmethod
-  def dock_all(cls, view, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).bottom == C._fit(view, fit).bottom - constant
-    C(view).leading == C._fit(view, fit).leading + constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
-    
-  @classmethod
-  def dock_center(cls, view, share=None):
-    C = Constraint
-    C(view).center_x == C(s).center_x
-    C(view).center_y == C(s).center_y
-    cls._set_size(view, share)
-    
-  @classmethod
-  def dock_sides(cls, view, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).leading == C._fit(view, fit).leading + constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
+  def dock_center(self, share=None):
+    s = Constrain(self.superview)
+    self.center_x == s.center_x
+    self.center_y == s.center_y
+    self._set_size(share)
+  
+  def dock_sides(self, constant=0, fit=default_fit):
+    self.leading == self._fit(fit).leading + constant
+    self.trailing == self._fit(fit).trailing - constant
     
   dock_horizontal = dock_sides
+  
+  def dock_horizontal_between(self, top_view, bottom_view, constant=0, fit=default_fit):
+    self.dock_horizontal(constant, fit)
+    if fit == Constrain.TIGHT:
+      self.top == Constrain(top_view).bottom + constant
+      self.bottom == Constrain(bottom_view).top + constant
+    elif fit == Constrain.MARGIN:
+      self.top == Constrain(top_view).bottom_padding + constant
+      self.bottom == Constrain(bottom_view).top_padding + constant
     
-  def dock_vertical(cls, view, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).bottom == C._fit(view, fit).bottom - constant
+  def dock_vertical(self, constant=0, fit=default_fit):
+    self.top == self._fit(fit).top + constant
+    self.bottom == self._fit(fit).bottom - constant
     
-  @classmethod
-  def _set_size(cls, view, share):
+  def dock_vertical_between(self, leading_view, trailing_view, constant=0, fit=default_fit):
+    self.dock_vertical(constant, fit)
+    if fit == Constrain.TIGHT:
+      self.leading == Constrain(leading_view).trailing + constant
+      self.trailing == Constrain(trailing_view).leading + constant
+    elif fit == Constrain.MARGIN:
+      self.leading == Constrain(leading_view).trailing_padding + constant
+      self.trailing == Constrain(trailing_view).leading_padding + constant
+    
+  def _set_size(self, share):
     if share is not None:
       share_x, share_y = share if type(share) in (list, tuple) else (share, share)
-      C(view).width == C(view.superview).width * share_x
-      C(view).height == C(view.superview).height * share_y
+      s = Constrain(self.superview)
+      self.width == s.width * share_x
+      self.height == s.height * share_y
     
-  @classmethod
-  def dock_top(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).leading == C._fit(view, fit).leading + constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
+  def dock_top(self, share=None, constant=0, fit=default_fit):
+    self.top == self._fit(fit).top + constant
+    self.leading == self._fit(fit).leading + constant
+    self.trailing == self._fit(fit).trailing - constant
     if share is not None:
       
-      C(view).height == C(view.superview).height * share
-    
-  @classmethod
-  def dock_bottom(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).bottom == C._fit(view, fit).bottom - constant
-    C(view).leading == C._fit(view, fit).leading + constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
+      self.height == Constrain(self.superview).height * share
+  
+  def dock_bottom(self, share=None, constant=0, fit=default_fit):
+    self.bottom == self._fit(fit).bottom - constant
+    self.leading == self._fit(fit).leading + constant
+    self.trailing == self._fit(fit).trailing - constant
     if share is not None:
       
-      C(view).height == C(view.superview).height * share
+      self.height == Constrain(self.superview).height * share
     
-  @classmethod
-  def dock_leading(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).leading == C._fit(view, fit).leading + constant
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).bottom == C._fit(view, fit).bottom - constant
+  def dock_leading(self, share=None, constant=0, fit=default_fit):
+    self.leading == self._fit(fit).leading + constant
+    self.top == self._fit(fit).top + constant
+    self.bottom == self._fit(fit).bottom - constant
     if share is not None:
       
-      C(view).width == C(view.superview).width * share
+      self.width == Constrain(self.superview).width * share
     
-  @classmethod
-  def dock_trailing(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).trailing == C._fit(view, fit).trailing - constant
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).bottom == C._fit(view, fit).bottom - constant
+  def dock_trailing(self, share=None, constant=0, fit=default_fit):
+    self.trailing == self._fit(fit).trailing - constant
+    self.top == self._fit(fit).top + constant
+    self.bottom == self._fit(fit).bottom - constant
     if share is not None:
       
-      C(view).width == C(view.superview).width * share
+      self.width == Constrain(self.superview).width * share
     
-  @classmethod
-  def dock_top_leading(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).leading == C._fit(view, fit).leading + constant
-    cls._set_size(view, share)
+  def dock_top_leading(self, share=None, constant=0, fit=default_fit):
+    self.top == self._fit(fit).top + constant
+    self.leading == self._fit(fit).leading + constant
+    self._set_size(share)
     
-  @classmethod
-  def dock_top_trailing(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).top == C._fit(view, fit).top + constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
-    cls._set_size(view, share)
+  def dock_top_trailing(self, share=None, constant=0, fit=default_fit):
+    self.top == self._fit(fit).top + constant
+    self.trailing == self._fit(fit).trailing - constant
+    self._set_size(share)
     
-  @classmethod
-  def dock_bottom_leading(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).bottom == C._fit(view, fit).bottom - constant
-    C(view).leading == C._fit(view, fit).leading + constant
-    cls._set_size(view, share)
-    
-  @classmethod
-  def dock_bottom_trailing(cls, view, share=None, constant=0, fit=default_fit):
-    C = Constraint
-    C(view).bottom == C._fit(view, fit).bottom - constant
-    C(view).trailing == C._fit(view, fit).trailing - constant
-    cls._set_size(view, share)
+  def dock_bottom_leading(self, share=None, constant=0, fit=default_fit):
+    self.bottom == self._fit(fit).bottom - constant
+    self.leading == self._fit(fit).leading + constant
+    self._set_size(share)
+
+  def dock_bottom_trailing(self, share=None, constant=0, fit=default_fit):
+    self.bottom == self._fit(fit).bottom - constant
+    self.trailing == self._fit(fit).trailing - constant
+    self._set_size(share)
     
   position = 0
   size = 1
@@ -439,7 +442,7 @@ class Constrain:
     
   @on_main_thread
   def _create_constraint(self, other):
-    if isinstance(other, Constraint):
+    if isinstance(other, Constrain):
       self.other_view = other.view
       self.other_attribute = other.attribute
       self.constant = other.constant
@@ -451,10 +454,10 @@ class Constrain:
         f'Cannot use object of type {str(type(other))} in a constraint comparison: ' + 
         str(self))
     
-    a = Constraint.characteristics[self.attribute]
-    b = Constraint.characteristics[self.other_attribute]
+    a = Constrain.characteristics[self.attribute]
+    b = Constrain.characteristics[self.other_attribute]
     
-    if a[1] == Constraint.position and (
+    if a[1] == Constrain.position and (
       self.multiplier == 0 or
       self.other_view == None or 
       self.other_attribute == 0):
@@ -465,7 +468,7 @@ class Constrain:
       raise AttributeError(
         'Constraint cannot relate location and size attributes: ' + str(self))
       
-    if a[1] == b[1] == Constraint.position and a[2] != b[2]:
+    if a[1] == b[1] == Constrain.position and a[2] != b[2]:
       raise AttributeError(
         'Constraint cannot relate horizontal and vertical location attributes: '\
         + str(self))
@@ -479,7 +482,7 @@ class Constrain:
       self.view.objc_instance.setTranslatesAutoresizingMaskIntoConstraints_(False)
       #C._set_defaults(self.view)
       if type(self.view) in C.autofit_types:
-        C.size_to_fit(self.view)
+        self.size_to_fit()
       
     layout_constraints = getattr(self.view, 'layout_constraints', [])
     layout_constraints.append(self)
@@ -507,19 +510,18 @@ class Constrain:
     
   @classmethod
   def _set_defaults(cls, view):
-    C = Constraint
+    C = Constrain
     (C(view, priority=1).width == view.width)
     (C(view, priority=1).height == view.height)
     (C(view, priority=1).left == C(view.superview).left + view.x)
     (C(view, priority=1).top == C(view.superview).top + view.y)
     
-  @classmethod
-  def size_to_fit(cls, view):
+  def size_to_fit(self):
+    view = self.view
     size = view.objc_instance.sizeThatFits_((0,0))
-    C = Constraint
-    margins = C.margin_inset(view)
-    C(view, priority=1).width == size.width + margins.leading + margins.trailing
-    C(view, priority=1).height == size.height
+    margins = self.margin_inset()
+    (Constrain(view).width == size.width + margins.leading + margins.trailing).priority = 1
+    (Constrain(view).height == size.height).priority = 1
 
 
 if __name__ == '__main__':
@@ -527,7 +529,7 @@ if __name__ == '__main__':
   import ui
   import scripter
   
-  C = Constraint
+  C = Constrain
   
   def style(view):
     view.background_color='white'
@@ -564,23 +566,30 @@ if __name__ == '__main__':
   
   search_field_c = Constrain(search_field)
   search_button_c = Constrain(search_button)
+  done_button_c = Constrain(done_button)
+  cancel_button_c = Constrain(cancel_button)
+  result_area_c = Constrain(result_area)
   
   search_field_c.dock_top_leading()
   search_field_c.trailing == search_button_c.leading_padding
   
-  C.dock_top_leading(search_field)
-  C.dock_top_trailing(search_button)
-  C(search_field).trailing == C(search_button).leading_padding
-  C(search_field).height == C(search_button).height
+  search_field_c.dock_top_leading()
+  search_button_c.dock_top_trailing()
+  search_field_c.trailing == search_button_c.leading_padding
+  search_field_c.height == search_button_c.height
   
-  C.dock_bottom_trailing(done_button)
-  C(cancel_button).trailing == C(done_button).leading_padding
-  C(cancel_button).top == C(done_button).top
+  done_button_c.dock_bottom_trailing()
+  cancel_button_c.trailing == done_button_c.leading_padding
+  cancel_button_c.top == done_button_c.top
   
-  C.dock_sides(result_area)
-  C(result_area).top == C(search_button).bottom_padding
-  C(result_area).bottom == C(done_button).top_padding
+  result_area_c.dock_horizontal_between(search_button, done_button)
   
+  '''
+  result_area_c.dock_sides()
+  result_area_c.top == search_button_c.bottom_padding
+  result_area_c.bottom == done_button_c.top_padding
+  '''
+  '''
   path = 'resources/images/awesome/regular/industry/travel/sun'
   for component in path.split('/'):
     label = ui.Label(text=component)
@@ -590,7 +599,7 @@ if __name__ == '__main__':
     if len(result_area.subviews) > 1:
       previous_label = result_area.subviews[-2]
       
-      C(label).last_baseline >= C(previous_label).last_baseline
+      C(label).last_baseline >= C(previous_label).last_baselineä
       C(label).trailing <= C(result_area).trailing_margin
       #C(label, priority=300).top == C(result_area).top_margin
       C(label, priority=399).top == C(previous_label).top
@@ -602,7 +611,7 @@ if __name__ == '__main__':
       C(label).top == C(result_area).top_margin
       C(label).leading == C(result_area).leading_margin
     previous_label = label
-
+  '''
   #for c in C.constraints_by_attribute(textfield, C.height):
   #  print(c)
   
