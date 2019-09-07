@@ -211,7 +211,7 @@ class ExerciseSource(DaySource):
 
 if __name__ == '__main__':
   
-  exercises = tinysync.track([], name='gym-test-prog')
+  exercises = tinysync.track([], name='gym-program')
   
   v = ui.View(background_color='black',)
   

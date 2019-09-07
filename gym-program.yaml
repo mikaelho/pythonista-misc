@@ -1,37 +1,67 @@
 - exercises:
-  - image_name: bench_press.JPG
-    reps: 3 x 8
-    title: Penkkipunnerrus tangolla
-    weight_mikael: 50
-    weight_oskari: 10
   - image_name: ''
     reps: 3 x 10
-    title: Penkki- punnerrus painoilla
-    weight_mikael: 17
-    weight_oskari: 5
+    title: Penkkipunnerrus painoilla
+    weight_mikael: 20
+    weight_oskari: 5+
   - image_name: ''
     reps: 3 x 10
     title: Vinopenkki painoilla
-    weight_mikael: 10
-    weight_oskari: 4
+    weight_mikael: 12,5
+    weight_oskari: 5
   - image_name: hartiat_painoilla.JPG
     reps: 3 x 10
     title: Hartiat painoilla
-    weight_mikael: 6
-    weight_oskari: 3
+    weight_mikael: 7
+    weight_oskari: 4
+  - image_name: ''
+    reps: 2 x 15
+    title: Ojentajat ylös
+    weight_mikael: 15
+    weight_oskari: 5
   - image_name: ''
     reps: 3 x 10
-    title: Pystyvedot taljalla
-    weight_mikael: 15
-    weight_oskari: 10
-  title: Rintapäivä
+    title: Dippi
+    weight_mikael: 9
+    weight_oskari: 36-
+  title: Ojentajat
 - exercises:
   - image_name: ''
-    reps: 3 x 8
-    title: Vinopenkki
+    reps: 3 x 10
+    title: Talja eteen
+    weight_mikael: 47+
+    weight_oskari: 26
+  - image_name: ''
+    reps: 3 x 10
+    title: Talja niskaan
+    weight_mikael: 40++
+    weight_oskari: 19++
+  - image_name: ''
+    reps: 3 x 15
+    title: Soutu taljalla
     weight_mikael: 40
-    weight_oskari: 10
-  title: Selkäpäivä
+    weight_oskari: 12+
+  - image_name: ''
+    reps: 3 x 10
+    title: Hauiskääntö käsipainoilla
+    weight_mikael: 8+
+    weight_oskari: 3+
+  - image_name: ''
+    reps: 2 x 15
+    title: Ranskalaiset
+    weight_mikael: 17,5+
+    weight_oskari: 7
+  - image_name: ''
+    reps: 10
+    title: Painot sivuille ja eteen
+    weight_mikael: 7
+    weight_oskari: 3
+  - image_name: ''
+    reps: 100
+    title: Nyrkkiin puristus
+    weight_mikael: ''
+    weight_oskari: ''
+  title: Koukistajat
 - exercises:
   - image_name: pohkeita.JPG
     reps: 2 x 20
@@ -63,25 +93,35 @@
     title: Selkiä
     weight_mikael: 15
     weight_oskari: 5
-  title: Jalkapäivä
+  title: Jalat
 - exercises:
   - image_name: ''
-    title: Niska
+    reps: 1 x ∞
+    title: Vatsat koneella
+    weight_mikael: 50
+    weight_oskari: 36?
   - image_name: ''
-    title: Rinta ja ojentajat
+    reps: 1 x 20
+    title: Vatsat ristiin
   - image_name: ''
-    title: Hauikset
+    reps: 1 x ∞
+    title: Vatsat pallolla
+  title: Vatsa
+- exercises:
   - image_name: ''
-    title: Pohkeet
+    title: Selän ojennus
   - image_name: ''
-    title: Reidet
-  - image_name: ''
-    title: Selkä
-  title: Venyttelyt
+    title: Kylkien ojennus
+  title: Selkä
 - exercises:
   - image_name: kyykky_penkille.JPG
     reps: 3 x 10
     title: Kyykky penkille
     weight_mikael: 20
     weight_oskari: 8
+  - image_name: bench_press.JPG
+    reps: 3 x 8
+    title: Penkkipunnerrus tangolla
+    weight_mikael: 50
+    weight_oskari: 10
   title: Arkisto
