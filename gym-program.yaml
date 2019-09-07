@@ -7,13 +7,13 @@
   - image_name: ''
     reps: 3 x 10
     title: Penkki- punnerrus painoilla
-    weight_mikael: 15
-    weight_oskari: 4
+    weight_mikael: 17
+    weight_oskari: 5
   - image_name: ''
     reps: 3 x 10
     title: Vinopenkki painoilla
     weight_mikael: 10
-    weight_oskari: 3
+    weight_oskari: 4
   - image_name: hartiat_painoilla.JPG
     reps: 3 x 10
     title: Hartiat painoilla
@@ -36,33 +36,33 @@
   - image_name: pohkeita.JPG
     reps: 2 x 20
     title: Pohkeita
-    weight_mikael: 20
-    weight_oskari: 0
+    weight_mikael: '100'
+    weight_oskari: 36
   - image_name: reisikääntö.JPG
     reps: 3 x 15
     title: Reisikääntö
-    weight_mikael: 50
-    weight_oskari: 32
-  - image_name: kyykky_penkille.JPG
-    reps: 3 x 10
-    title: Kyykky penkille
-    weight_mikael: 20
-    weight_oskari: 8
+    weight_mikael: 68
+    weight_oskari: 41?
   - image_name: jalkaprässi.JPG
-    reps: 2 x 15
+    reps: 2 x 20
     title: Jalkaprässi
-    weight_mikael: 0
-    weight_oskari: 0
+    weight_mikael: 82
+    weight_oskari: 36
   - image_name: reisien_ojentajat.JPG
     reps: 2 x 15
     title: Reisien ojentajat
-    weight_mikael: 32
-    weight_oskari: 14
+    weight_mikael: 50+
+    weight_oskari: 32
+  - image_name: Selkiä.JPG
+    reps: 1 x 20
+    title: Pakaran ojentajat
+    weight_mikael: 18.75
+    weight_oskari: 6.25
   - image_name: selkiä.JPG
     reps: 1 x 20
     title: Selkiä
-    weight_mikael: 1
-    weight_oskari: 1
+    weight_mikael: 15
+    weight_oskari: 5
   title: Jalkapäivä
 - exercises:
   - image_name: ''
@@ -78,3 +78,10 @@
   - image_name: ''
     title: Selkä
   title: Venyttelyt
+- exercises:
+  - image_name: kyykky_penkille.JPG
+    reps: 3 x 10
+    title: Kyykky penkille
+    weight_mikael: 20
+    weight_oskari: 8
+  title: Arkisto
