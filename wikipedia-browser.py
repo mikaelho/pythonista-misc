@@ -17,6 +17,7 @@ class WikipediaGraph:
     self.selected_page = None
     self.loaded_content = None
     self.nodes = {}
+    self.connectors = []
     
   @unsync
   def search_term(self, term):
@@ -28,7 +29,7 @@ class WikipediaGraph:
         self.put_on_screen([hit])
         break
     else:
-      self.put_on_screen(hits)
+      self.put_on_screen(hits[:20])
     
   @on_main_thread
   def put_on_screen(self, hits, parent=None):
@@ -46,6 +47,8 @@ class WikipediaGraph:
         j = sk.Joint.spring(parent, node,
           parent.position, node.position,
           frequency=0.8, damping=0.2)
+        #print(dir(ObjCInstance(j)))
+        self.connectors.append((parent, node))
     if len(hits) == 1:
       self.fetch_page(hits[0])
       
@@ -74,12 +77,37 @@ class WikipediaGraph:
       self.nodes = { name: node }
       self.loaded_content = wikipedia.page(name)
       if self.loaded_content.title == name:
-        self.put_on_screen(self.loaded_content.links, node)
+        self.put_on_screen(self.loaded_content.links[:20], node)
       else:
         self.no_match()
 
 
 class SpringScene(sk.Scene):
+  
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+    
+    self.scene.connectors = sk.ShapeNode(
+      ui.Path(),
+      no_body=True,
+      line_color='grey',
+      parent=self.scene,
+    )
+
+    sk.FieldNode.electric(
+      strength=0.2,
+      falloff=1.5,
+      minimum_radius=10,
+      category_bitmask=1,
+      parent=self.scene
+    )
+    
+    sk.FieldNode.radial_gravity(
+      strength=0.2,
+      falloff=1,
+      minimum_radius=10,
+      parent=self.scene
+    )
   
   def layout(self):
     x,y,w,h = self.view.bounds
@@ -87,6 +115,21 @@ class SpringScene(sk.Scene):
       *self.convert_from_view((0,h)),
       w,h
     )
+    
+  def update(self, ct):
+    return
+    if not hasattr(self, 'graph'): return 
+    if len(self.graph.connectors) == 0:
+      return 
+    p = ui.Path()
+    for a,b in self.graph.connectors:
+      a_pos = self.convert_point_to(
+        a.position, self.connectors)
+      b_pos = self.convert_point_to(
+        b.position, self.connectors)
+      p.move_to(*a_pos)
+      p.line_to(*b_pos)
+    self.connectors.path = p
     
 class GraphNode(sk.BoxNode):
   
@@ -188,26 +231,10 @@ class WikipediaBrowser(ui.View):
     
     self.scene = SpringScene(
       physics=sk.UIPhysics,
-      physics_debug=True,
+      #physics_debug=True,
       background_color='white',
       anchor_point=(0.5, 0.5)
     )
-
-    sk.FieldNode.electric(
-      strength=0.2,
-      falloff=1.5,
-      minimum_radius=10,
-      category_bitmask=1,
-      parent=self.scene
-    )
-    
-    sk.FieldNode.radial_gravity(
-      strength=0.2,
-      falloff=1,
-      minimum_radius=10,
-      parent=self.scene
-    )
-    
     
     result_area = self.scene.view
     enable(result_area)
@@ -223,15 +250,6 @@ class WikipediaBrowser(ui.View):
     
     self.scene.graph = WikipediaGraph(self.scene)
     self.search_field.begin_editing()
-
-  '''
-  def layout(self):
-    x,y,w,h = self.scene.view.bounds
-    self.scene.set_edge_loop(
-      *self.scene.convert_from_view((0,h)),
-      *self.scene.convert_from_view((w,0))
-    )
-  '''
 
   def search(self, sender):
     self.search_field.end_editing()
