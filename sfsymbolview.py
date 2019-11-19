@@ -1,5 +1,5 @@
 
-import ui
+import ui, clipboard
 from objc_util import *
 
 UIImage = ObjCClass('UIImage')
@@ -87,6 +87,7 @@ class SymbolSource:
             image=symbol_image,
             frame=cell.content_view.bounds,
             flex='WH',
+            action=self.copy_to_clipboard,
             #enabled=False,
         )
         
@@ -94,6 +95,8 @@ class SymbolSource:
 
         return cell
 
+    def copy_to_clipboard(self, sender):
+        clipboard.set(sender.title[3:])
   
 symbol_table = ui.TableView(
     background_color='black',
