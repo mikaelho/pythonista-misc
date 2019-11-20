@@ -9,14 +9,27 @@ UIImagePNGRepresentation = c.UIImagePNGRepresentation
 UIImagePNGRepresentation.restype = c_void_p
 UIImagePNGRepresentation.argtypes = [c_void_p]
 
-SMALL, MEDIUM, LARGE = 1, 2, 3
+#WEIGHTS
 ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK = range(1, 10)
+# SCALES
+SMALL, MEDIUM, LARGE = 1, 2, 3
 
-def SymbolImage(name, scale=None, weight=None):
+def SymbolImage(name, point_size=None, weight=None, scale=None):
     objc_image = ObjCClass('UIImage').systemImageNamed_(name)
+    conf = UIImageSymbolConfiguration.defaultConfiguration()
+    if point_size is not None:
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithPointSize_(point_size))
+    if weight is not None:
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithWeight_(weight))
     if scale is not None:
-        conf = UIImageSymbolConfiguration.configurationWithScale_(scale)
-        objc_image = objc_image.imageByApplyingSymbolConfiguration_(conf)
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithScale_(scale))
+    objc_image = objc_image.imageByApplyingSymbolConfiguration_(conf)
         
     return ui.Image.from_data(
         nsdata_to_bytes(ObjCInstance(UIImagePNGRepresentation(objc_image)))
@@ -29,7 +42,8 @@ class SymbolSource:
   
     def __init__(self, tableview):
         self.tableview = tableview
-        tableview.row_height = 75
+        tableview.row_height = 50
+        self.weight = THIN
         
         with open('sfsymbolnames.txt', 'r') as fp:
             all_lines = fp.read()    
@@ -54,22 +68,29 @@ class SymbolSource:
 
         self.index = 0
         
-        self.next_button = ui.ButtonItem(
-          tint_color='grey',
-          title='Next',
-          enabled=True,
-          action=self.next,
-        )
-      
         self.prev_button = ui.ButtonItem(
-          tint_color='grey',
+          tint_color='black',
           title='Prev',
           enabled=False,
           action=self.prev,
         )
+        
+        self.next_button = ui.ButtonItem(
+          tint_color='black',
+          title='Next',
+          enabled=True,
+          action=self.next,
+        )
+        self.weight_button = ui.ButtonItem(
+          tint_color='black',
+          title='Thin',
+          enabled=True,
+          action=self.change_weight,
+        )
+      
       
         tableview.left_button_items = [self.prev_button]
-        tableview.right_button_items = [self.next_button]
+        tableview.right_button_items = [self.next_button, self.weight_button]
         
     def next(self, sender):
         self.index += self.symbols_per_page
@@ -87,6 +108,14 @@ class SymbolSource:
         self.next_button.enabled = True
         self.tableview.reload()
         
+    def change_weight(self, sender):
+        titles = ['Ultralight', 'Thin', 'Light', 'Regular', 'Medium', 'Semibold', 'Bold', 'Heavy', 'Black']
+        self.weight += 1
+        if self.weight > BLACK:
+            self.weight = ULTRALIGHT
+        self.weight_button.title = titles[self.weight-1]
+        self.tableview.reload()
+        
     def tableview_number_of_rows(self, tableview, section):
         return self.symbols_per_page
         
@@ -100,7 +129,8 @@ class SymbolSource:
         if symbol_name.startswith('R '):
             symbol_name = symbol_name[2:]
             tint_color = 'orange'
-        symbol_image = SymbolImage(symbol_name, SMALL)
+        symbol_image = SymbolImage(symbol_name, 
+        point_size=10, weight=self.weight)
 
         button = ui.Button(
             tint_color=tint_color,
