@@ -36,10 +36,21 @@ class SymbolSource:
         raw = all_lines.splitlines()
         restricted_prefix = 'Usage restricted'
         
+        '''
         self.symbol_names = [ symbol_name
             for symbol_name in raw
             if not symbol_name.startswith(restricted_prefix)
         ]
+        '''
+        
+        self.symbol_names = []
+        for i, symbol_name in enumerate(raw):
+            if raw[i].startswith(restricted_prefix): continue
+            if i+1 == len(raw): continue
+            value = symbol_name
+            if raw[i+1].startswith(restricted_prefix):
+                value = 'R ' + value
+            self.symbol_names.append(value)
 
         self.index = 0
         
@@ -62,11 +73,17 @@ class SymbolSource:
         
     def next(self, sender):
         self.index += self.symbols_per_page
+        if self.index + self.symbols_per_page >= len(self.symbol_names):
+            self.index = len(self.symbol_names) - self.symbols_per_page - 1
+            self.next_button.enabled = False
         self.prev_button.enabled = True
         self.tableview.reload()
         
     def prev(self, sender):
         self.index -= self.symbols_per_page
+        if self.index <= 0:
+            self.index = 0
+            self.prev_button.enabled = False
         self.next_button.enabled = True
         self.tableview.reload()
         
@@ -79,10 +96,14 @@ class SymbolSource:
         cell.background_color='black'
         
         symbol_name = self.symbol_names[self.index+row]
+        tint_color = 'white'
+        if symbol_name.startswith('R '):
+            symbol_name = symbol_name[2:]
+            tint_color = 'orange'
         symbol_image = SymbolImage(symbol_name, SMALL)
 
         button = ui.Button(
-            tint_color='white',
+            tint_color=tint_color,
             title='   '+symbol_name,
             image=symbol_image,
             frame=cell.content_view.bounds,
