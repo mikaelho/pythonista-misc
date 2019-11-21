@@ -1,5 +1,5 @@
 
-import ui, clipboard, re
+import ui, clipboard, re, dialogs
 from objc_util import *
 
 UIImage = ObjCClass('UIImage')
@@ -95,12 +95,6 @@ if __name__ == '__main__':
               enabled=True,
               action=self.to_end,
             )
-            self.search_button = ui.ButtonItem(
-              tint_color='black',
-              image=SymbolImage('magnifyingglass', 8, weight=THIN),
-              enabled=True,
-              action=self.search,
-            )
             self.weight_button = ui.ButtonItem(
               tint_color='black',
               title='Thin',
@@ -112,22 +106,9 @@ if __name__ == '__main__':
                 self.to_start_button,
                 self.prev_button]
             root.right_button_items = [
-                self.search_button, 
                 self.to_end_button, 
                 self.next_button, 
                 self.weight_button]
-                
-            self.searchview = ui.View(
-                background_color='blue',
-                frame=(
-                    0, 0,
-                    tableview.width,
-                    30
-                ),
-                flex='W',
-                hidden=True
-            )
-            tableview.add_subview(self.searchview)
             
         def update_list_to_display(self):
             self.data_list = []
@@ -182,9 +163,6 @@ if __name__ == '__main__':
             self.weight_button.title = titles[self.weight-1]
             self.tableview.reload()
             
-        def search(self, sender):
-            self.searchview.hidden = False
-            
         def tableview_number_of_rows(self, tableview, section):
             return len(self.data_list)
             
@@ -218,6 +196,7 @@ if __name__ == '__main__':
     
         def copy_to_clipboard(self, sender):
             clipboard.set(sender.title[3:])
+            dialogs.hud_alert('Copied')
       
         def textfield_did_change(self, textfield):
             search_text = textfield.text.strip().lower()
