@@ -1,5 +1,5 @@
 
-import ui, clipboard
+import ui, clipboard, re
 from objc_util import *
 
 UIImage = ObjCClass('UIImage')
@@ -16,9 +16,9 @@ SMALL, MEDIUM, LARGE = 1, 2, 3
 
 def SymbolImage(name, point_size=None, weight=None, scale=None):
     ''' Create a ui.Image from an SFSymbol name. Optional parameters:
-        * point_size - Integer font size
-        * weight - Font weight, one of ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK
-        * scale - Size relative to font size, one of SMALL, MEDIUM, LARGE 
+        * `point_size` - Integer font size
+        * `weight` - Font weight, one of ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK
+        * `scale` - Size relative to font size, one of SMALL, MEDIUM, LARGE 
         
     Run the file to see a symbol browser.'''
     objc_image = ObjCClass('UIImage').systemImageNamed_(name)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         
         symbols_per_page = 20
       
-        def __init__(self, tableview):
+        def __init__(self, root, tableview):
             self.tableview = tableview
             tableview.row_height = 50
             self.weight = THIN
@@ -69,6 +69,7 @@ if __name__ == '__main__':
                 self.symbol_names.append(value)
     
             self.index = 0
+            self.update_list_to_display()
             
             self.prev_button = ui.ButtonItem(
               tint_color='black',
@@ -90,10 +91,15 @@ if __name__ == '__main__':
             )
             self.to_end_button = ui.ButtonItem(
               tint_color='black',
-              #title='Next',
               image=SymbolImage('arrow.right.to.line', 8, weight=THIN),
               enabled=True,
               action=self.to_end,
+            )
+            self.search_button = ui.ButtonItem(
+              tint_color='black',
+              image=SymbolImage('magnifyingglass', 8, weight=THIN),
+              enabled=True,
+              action=self.search,
             )
             self.weight_button = ui.ButtonItem(
               tint_color='black',
@@ -102,13 +108,31 @@ if __name__ == '__main__':
               action=self.change_weight,
             )
           
-            tableview.left_button_items = [
+            root.left_button_items = [
                 self.to_start_button,
                 self.prev_button]
-            tableview.right_button_items = [
+            root.right_button_items = [
+                self.search_button, 
                 self.to_end_button, 
                 self.next_button, 
                 self.weight_button]
+                
+            self.searchview = ui.View(
+                background_color='blue',
+                frame=(
+                    0, 0,
+                    tableview.width,
+                    30
+                ),
+                flex='W',
+                hidden=True
+            )
+            tableview.add_subview(self.searchview)
+            
+        def update_list_to_display(self):
+            self.data_list = []
+            for i in range(self.index, self.index+self.symbols_per_page):
+                self.data_list.append(self.symbol_names[i])
             
         def next(self, sender):
             self.index += self.symbols_per_page
@@ -118,6 +142,7 @@ if __name__ == '__main__':
                 self.to_end_button.enabled = False
             self.prev_button.enabled = True
             self.to_start_button.enabled = True
+            self.update_list_to_display()
             self.tableview.reload()
             
         def to_end(self, sender):
@@ -126,6 +151,7 @@ if __name__ == '__main__':
             self.to_end_button.enabled = False
             self.prev_button.enabled = True
             self.to_start_button.enabled = True
+            self.update_list_to_display()
             self.tableview.reload()
             
         def prev(self, sender):
@@ -136,6 +162,7 @@ if __name__ == '__main__':
                 self.to_start_button.enabled = False
             self.next_button.enabled = True
             self.to_end_button.enabled = True
+            self.update_list_to_display()
             self.tableview.reload()
             
         def to_start(self, sender):
@@ -144,6 +171,7 @@ if __name__ == '__main__':
             self.to_start_button.enabled = False
             self.next_button.enabled = True
             self.to_end_button.enabled = True
+            self.update_list_to_display()
             self.tableview.reload()
             
         def change_weight(self, sender):
@@ -154,15 +182,18 @@ if __name__ == '__main__':
             self.weight_button.title = titles[self.weight-1]
             self.tableview.reload()
             
+        def search(self, sender):
+            self.searchview.hidden = False
+            
         def tableview_number_of_rows(self, tableview, section):
-            return self.symbols_per_page
+            return len(self.data_list)
             
         def tableview_cell_for_row(self, tableview, section, row):
             cell = ui.TableViewCell()
             cell.selectable = False
             cell.background_color='black'
             
-            symbol_name = self.symbol_names[self.index+row]
+            symbol_name = self.data_list[row]
             tint_color = 'white'
             if symbol_name.startswith('R '):
                 symbol_name = symbol_name[2:]
@@ -188,11 +219,51 @@ if __name__ == '__main__':
         def copy_to_clipboard(self, sender):
             clipboard.set(sender.title[3:])
       
+        def textfield_did_change(self, textfield):
+            search_text = textfield.text.strip().lower()
+            if search_text == '':
+                self.update_list_to_display()
+                textfield.end_editing()
+            else:
+                self.data_list = list(fuzzyfinder(search_text, self.symbol_names))
+            self.tableview.reload()
+    
+    def fuzzyfinder(input, collection, accessor=lambda x: x, sort_results=True):
+        suggestions = []
+        input = str(input) if not isinstance(input, str) else input
+        pat = '.*?'.join(map(re.escape, input))
+        pat = '(?=({0}))'.format(pat)
+        regex = re.compile(pat, re.IGNORECASE)
+        for item in collection:
+            r = list(regex.finditer(accessor(item)))
+            if r:
+                best = min(r, key=lambda x: len(x.group(1)))
+                suggestions.append((len(best.group(1)), best.start(), accessor(item), item))
+        if sort_results:
+            return (z[-1] for z in sorted(suggestions))
+        else:
+            return (z[-1] for z in sorted(suggestions, key=lambda x: x[:2]))
+      
+    root = ui.View()
+      
     symbol_table = ui.TableView(
         background_color='black',
+        frame=root.bounds, flex='WH',
     )
+    data_source = symbol_table.data_source = SymbolSource(root, symbol_table)
     
-    symbol_table.data_source = SymbolSource(symbol_table)
+    search_field = ui.TextField(
+        frame=(8,8, root.width-16, 40),
+        flex='W',
+        clear_button_mode='always',
+        delegate=data_source,
+    )
+    symbol_table.y = search_field.height + 16
+    symbol_table.height -= (search_field.height + 16)
     
-    symbol_table.present()
+    root.add_subview(search_field)
+    root.add_subview(symbol_table)
+    
+    #symbol_table.present()
+    root.present()
 
