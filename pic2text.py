@@ -46,7 +46,9 @@ class RecognizedTextSource:
         
     def from_photos(self, sender):
         pil_image = None
-        pil_image = photos.pick_asset().get_image()
+        asset = photos.pick_asset()
+        if asset is not None:
+            pil_image = asset.get_image()
         self.recognize(pil_image)
         
     def recognize(self, pil_image):
