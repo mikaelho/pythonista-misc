@@ -1,6 +1,6 @@
 #language_preference = ['fi'] #,'en','se']
 
-import photos, ui, dialogs, clipboard, appex
+import photos, ui, dialogs, clipboard
 import io, ctypes
 from functools import partial
 from objc_util import *
@@ -15,11 +15,49 @@ UIImagePNGRepresentation = c.UIImagePNGRepresentation
 UIImagePNGRepresentation.argtypes = [ctypes.c_void_p]
 UIImagePNGRepresentation.restype = ctypes.c_void_p
 
-root = ui.View()
+UIImage = ObjCClass('UIImage')
+UIImageSymbolConfiguration = ObjCClass('UIImageSymbolConfiguration')
+
+root = ui.View(
+    tint_color='black',
+)
   
 results_table = ui.TableView(
+    allows_multiple_selection=True,
     frame=root.bounds, flex='WH',
 )
+
+#WEIGHTS
+ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK = range(1, 10)
+# SCALES
+SMALL, MEDIUM, LARGE = 1, 2, 3
+
+def SymbolImage(name, point_size=None, weight=None, scale=None):
+    ''' Create a ui.Image from an SFSymbol name. Optional parameters:
+        * `point_size` - Integer font size
+        * `weight` - Font weight, one of ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK
+        * `scale` - Size relative to font size, one of SMALL, MEDIUM, LARGE 
+        
+    Run the file to see a symbol browser.'''
+    objc_image = ObjCClass('UIImage').systemImageNamed_(name)
+    conf = UIImageSymbolConfiguration.defaultConfiguration()
+    if point_size is not None:
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithPointSize_(point_size))
+    if weight is not None:
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithWeight_(weight))
+    if scale is not None:
+        conf = UIImageSymbolConfiguration.configurationWithConfiguration_and_(
+            conf,
+            UIImageSymbolConfiguration.configurationWithScale_(scale))
+    objc_image = objc_image.imageByApplyingSymbolConfiguration_(conf)
+    
+    return ui.Image.from_data(
+        nsdata_to_bytes(ObjCInstance(UIImagePNGRepresentation(objc_image)))
+    )
 
 def imagePickerController_didFinishPickingMediaWithInfo_(self,cmd,picker,info):
     
@@ -46,10 +84,11 @@ class RecognizedTextSource:
         super().__init__(**kwargs)
         self.tableview = tableview
         self.recognized_text = []
+        self.selected_rows = set()
         
         self.camera_button = ui.ButtonItem(
           tint_color='black',
-          image=ui.Image('iob:camera_32'),
+          image=SymbolImage('camera', 8, weight=THIN),
           action=partial(
               self.get_photo_action,
               picker_camera
@@ -57,18 +96,32 @@ class RecognizedTextSource:
         )
         self.photos_button = ui.ButtonItem(
           tint_color='black',
-          image=ui.Image('iob:ios7_photos_32'),
+          image=SymbolImage('photo.on.rectangle', 8, weight=THIN),
           action=partial(
               self.get_photo_action,
               picker_photos
           )
         )
+        self.copy_button = ui.ButtonItem(
+          tint_color='black',
+          title='Copy',
+          enabled=False,
+          action=self.copy_action
+        )
+        self.share_button = ui.ButtonItem(
+          tint_color='black',
+          title='Share',
+          enabled=False,
+          action=self.share_action
+        )
       
         root.left_button_items = [
-            self.photos_button
+            self.copy_button,
+            self.share_button,
         ]
         root.right_button_items = [
-            self.camera_button
+            self.camera_button,
+            self.photos_button,
         ]
         
     @on_main_thread
@@ -97,9 +150,41 @@ class RecognizedTextSource:
                 for result
                 in req.results()
             ]
+            self.selected_rows = set()
+            self.copy_button.enabled = True
+            self.share_button.enabled = True
             self.tableview.reload()
         else:
+            self.copy_button.enabled = False
+            self.share_button.enabled = False
             dialogs.hud_alert('Failed to recognize anything')
+        
+    def copy_action(self, sender):
+        text = self.get_text()
+        if text is None:
+            return
+        clipboard.set(text)
+        dialogs.hud_alert('Copied')
+        
+    def share_action(self, sender):
+        text = self.get_text()
+        if text is None:
+            return
+        dialogs.share_text(text)
+        
+    def get_text(self):
+        if len(self.recognized_text) == 0:
+            None
+        if len(self.selected_rows) == 0:
+            to_combine = self.recognized_text
+        else:
+            to_combine = [
+                self.recognized_text[i]
+                for i
+                in sorted(self.selected_rows)
+            ]
+        return '\n'.join(to_combine)
+                
         
     def tableview_number_of_rows(self, tableview, section):
         return len(self.recognized_text)
@@ -111,8 +196,10 @@ class RecognizedTextSource:
         return cell
 
     def tableview_did_select(self, tableview, section, row):
-        clipboard.set(self.recognized_text[row])
-        dialogs.hud_alert('Copied')
+        self.selected_rows.add(row)
+        
+    def tableview_did_deselect(self, tableview, section, row):
+        self.selected_rows.remove(row)
   
 results_table.data_source = results_table.delegate = RecognizedTextSource(
     root, results_table)
