@@ -20,7 +20,7 @@ class HelmetScraper(WebScraper):
   list_name = 'Kirjaston kirjat'
 
   def __init__(self, **kwargs):
-    self.super().__init__(**kwargs)  
+    super().__init__(**kwargs)  
     self.url_map = {
       self.default: 'about:blank',
       self.login_page: 'https://luettelo.helmet.fi/iii/cas/login',

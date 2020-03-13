@@ -1,104 +1,114 @@
 - exercises:
   - image_name: ''
     reps: 3 x 10
-    title: Penkkipunnerrus painoilla
-    weight_mikael: 20
-    weight_oskari: 5+
+    title: Penkkipunnerrus tangolla
+    weight_mikael: '60'
+    weight_oskari: '25'
   - image_name: ''
     reps: 3 x 10
     title: Vinopenkki painoilla
-    weight_mikael: 12,5
-    weight_oskari: 5
+    weight_mikael: '45'
+    weight_oskari: 20+?
   - image_name: hartiat_painoilla.JPG
     reps: 3 x 10
     title: Hartiat painoilla
-    weight_mikael: 7
-    weight_oskari: 4
-  - image_name: ''
-    reps: 2 x 15
-    title: Ojentajat ylös
-    weight_mikael: 15
-    weight_oskari: 5
-  - image_name: ''
-    reps: 3 x 10
-    title: Dippi
-    weight_mikael: 9
-    weight_oskari: 36-
-  title: Ojentajat
-- exercises:
-  - image_name: ''
-    reps: 3 x 10
-    title: Talja eteen
-    weight_mikael: 47+
-    weight_oskari: 26
-  - image_name: ''
-    reps: 3 x 10
-    title: Talja niskaan
-    weight_mikael: 40++
-    weight_oskari: 19++
-  - image_name: ''
-    reps: 3 x 15
-    title: Soutu taljalla
-    weight_mikael: 40
-    weight_oskari: 12+
-  - image_name: ''
-    reps: 3 x 10
-    title: Hauiskääntö käsipainoilla
-    weight_mikael: 8+
-    weight_oskari: 3+
+    weight_mikael: '15'
+    weight_oskari: '8'
   - image_name: ''
     reps: 2 x 15
     title: Ranskalaiset
-    weight_mikael: 17,5+
-    weight_oskari: 7
+    weight_mikael: 24,5
+    weight_oskari: '10'
   - image_name: ''
-    reps: 10
-    title: Painot sivuille ja eteen
-    weight_mikael: 7
-    weight_oskari: 3
+    reps: 3 x 10
+    title: Dippi
+    weight_mikael: '0'
+    weight_oskari: '27'
   - image_name: ''
-    reps: 100
+    reps: 1x20
+    title: Vatsat/Mittarimato
+    weight_mikael: '73'
+    weight_oskari: '36'
+  title: Ojentajat
+- exercises:
+  - image_name: ''
+    reps: '10'
+    title: Leuanveto
+    weight_mikael: 0
+    weight_oskari: 0
+  - image_name: ''
+    reps: 3 x 10
+    title: Talja eteen
+    weight_mikael: '67'
+    weight_oskari: 33++
+  - image_name: ''
+    reps: 3 x 10
+    title: Talja niskaan
+    weight_mikael: 57+
+    weight_oskari: '33'
+  - image_name: ''
+    reps: 3 x 15
+    title: Soutu taljalla
+    weight_mikael: '47'
+    weight_oskari: 19+
+  - image_name: ''
+    reps: 3 x 10
+    title: Hauiskääntö
+    weight_mikael: 24,5
+    weight_oskari: '11'
+  - image_name: ''
+    reps: 3x10
+    title: Rannekääntö
+    weight_mikael: 0
+    weight_oskari: 0
+  - image_name: ''
+    reps: 1x20
     title: Nyrkkiin puristus
     weight_mikael: ''
     weight_oskari: ''
+  - image_name: ''
+    reps: 10
+    title: Painot sivuille ja eteen
+    weight_mikael: 12,5
+    weight_oskari: '5'
   title: Koukistajat
 - exercises:
   - image_name: pohkeita.JPG
     reps: 2 x 20
     title: Pohkeita
-    weight_mikael: '100'
-    weight_oskari: 36
+    weight_mikael: '181'
+    weight_oskari: 73+
   - image_name: reisikääntö.JPG
     reps: 3 x 15
     title: Reisikääntö
-    weight_mikael: 68
-    weight_oskari: 41?
+    weight_mikael: 86+
+    weight_oskari: 59+?
   - image_name: jalkaprässi.JPG
     reps: 2 x 20
     title: Jalkaprässi
-    weight_mikael: 82
-    weight_oskari: 36
+    weight_mikael: 163+
+    weight_oskari: '82'
   - image_name: reisien_ojentajat.JPG
     reps: 2 x 15
     title: Reisien ojentajat
-    weight_mikael: 50+
-    weight_oskari: 32
+    weight_mikael: 91+
+    weight_oskari: 64+
   - image_name: Selkiä.JPG
     reps: 1 x 20
     title: Pakaran ojentajat
-    weight_mikael: 18.75
+    weight_mikael: 23,75
     weight_oskari: 6.25
-  - image_name: selkiä.JPG
+  - image_name: ''
     reps: 1 x 20
-    title: Selkiä
-    weight_mikael: 15
-    weight_oskari: 5
+    title: Kyljet/Rotaatio
+    weight_mikael: '15'
+    weight_oskari: '2.5'
   title: Jalat
 - exercises:
   - image_name: ''
     reps: 1 x ∞
     title: Vatsat koneella
-    weight_mikael: 50
+    weight_mikael: '59'
     weight_oskari: 36?
   - image_name: ''
     reps: 1 x 20
@@ -110,8 +120,18 @@
 - exercises:
   - image_name: ''
     title: Selän ojennus
+    weight_mikael: '15'
+    weight_oskari: +
   - image_name: ''
+    reps: 2p x 20
     title: Kylkien ojennus
+    weight_mikael: 23,75
+    weight_oskari: 13,75
+  - image_name: ''
+    reps: 3x15
+    title: Lapapunnerrus
+    weight_mikael: '-'
+    weight_oskari: '-'
   title: Selkä
 - exercises:
   - image_name: kyykky_penkille.JPG
@@ -125,3 +145,12 @@
     weight_mikael: 50
     weight_oskari: 10
   title: Arkisto
+- exercises: []
+  title: Ojentajat koneella?
+- exercises:
+  - image_name: ''
+    reps: 3x10
+    title: Lunge
+    weight_mikael: 0
+    weight_oskari: 0
+  title: Jalat kotona

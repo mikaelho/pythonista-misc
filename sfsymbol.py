@@ -36,7 +36,7 @@ def SymbolImage(name, point_size=None, weight=None, scale=None):
             conf,
             UIImageSymbolConfiguration.configurationWithScale_(scale))
     objc_image = objc_image.imageByApplyingSymbolConfiguration_(conf)
-        
+    
     return ui.Image.from_data(
         nsdata_to_bytes(ObjCInstance(UIImagePNGRepresentation(objc_image)))
     )

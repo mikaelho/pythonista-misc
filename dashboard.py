@@ -4,13 +4,12 @@ from dashboard_conf import *
 from ui import *
 from objc_util import *
 from anchor import *
-from unsync import unsync
-import concurrent.futures as cf
-import math, sys, json, requests, time, threading
+import math, sys, json, requests, time
 from urllib.parse import urlsplit
 from functools import partial
 from types import SimpleNamespace as NS
-from threadbare import threadbare
+
+from genr import genr
 
 import carnet
 
@@ -132,7 +131,7 @@ class Dashboard(ui.View):
       'partly-cloudy-night': 'iow:ios7_partlysunny_outline_256'
     }
 
-    @threadbare
+    @genr
     def main(self):
         self.request_forecast()
         self.carnet_login()
@@ -141,9 +140,12 @@ class Dashboard(ui.View):
             self.refresh_indicator.hidden = False
             self.get_emanager_status()
             self.get_vehicle_status()
+            carnet.getRemoteAccessHeating(self.session, self.url)
             self.refresh_indicator.hidden = True
             time.sleep(5)
-
+        self.carnet_logout()
+        
+    @genr
     def request_forecast(self):
         try:
             key = darksky_conf['api_key']
@@ -172,6 +174,7 @@ class Dashboard(ui.View):
         weather_icon.dock.top_leading(share=.35)
         weather_icon.hidden = False
 
+    @genr
     def carnet_login(self):
         self.url, msg = carnet.CarNetLogin(
             self.session, 
@@ -190,9 +193,8 @@ class Dashboard(ui.View):
             
     def will_close(self):
         self.active = False
-        self.carnet_logout()
         
-    @in_background
+    @genr
     def carnet_logout(self):
         command = '/-/logout/revoke'
         r = self.session.post(
@@ -251,6 +253,7 @@ class Dashboard(ui.View):
           f'{mileage}', title='Matka km')
         self.display_odometer = True
 
+    @genr
     def toggle_heating(self):
         self.heating_now = self.heating_now == False
         post_data = {
@@ -261,6 +264,8 @@ class Dashboard(ui.View):
         r = self.session.post(
             self.url + command, post_data,
             headers=carnet.request_headers)
+        print(r.status_code)
+        print(r.text[:200])
 
     '''
     def stop_heating(self):
@@ -299,6 +304,9 @@ class Dashboard(ui.View):
 v = Dashboard(background_color='black')
 v.present('full_screen', hide_title_bar=True)
 
+v.main()
+
+'''
 with cf.ThreadPoolExecutor() as e:
     futures = set()
     futures.add(e.submit(v.request_forecast))
@@ -307,6 +315,7 @@ with cf.ThreadPoolExecutor() as e:
         f.result()
 
 v.get_car_data()
+'''
 
 if len(sys.argv) == 2 and sys.argv[1] == 'warmup':
     v.call_soon(v.start_heating())
