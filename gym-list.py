@@ -240,7 +240,7 @@ if __name__ == '__main__':
   n.dock.all(fit=anchor.Dock.SAFE)
   
   v.present(
-    'full_screen',
+    'fullscreen',
     animated=False,
     hide_title_bar=True,
     title_bar_color='black',
