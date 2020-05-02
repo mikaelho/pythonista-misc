@@ -188,12 +188,12 @@ class NotesSection(ui.View):
     
   def edited(self, sender):
     #print(self.day_index, self.exercise_index, self.attr)
-    #try:
-    new_weight = sender.text
-    #except:
-    #exercise = exercises[self.day_index].exercises[self.exercise_index]
-    #sender.text = str(self.exercise[self.attr])
-    #return 
+    try:
+      new_weight = int(sender.text)
+    except:
+      #exercise = exercises[self.day_index].exercises[self.exercise_index]
+      sender.text = str(self.exercise[self.attr])
+      return 
     self.exercise[self.attr] = new_weight
     #exercises[self.day_index].exercises[self.exercise_index][self.attr] = new_weight
     
