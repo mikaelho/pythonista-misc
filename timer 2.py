@@ -231,7 +231,7 @@ m = TimeSelection(flex='WH', hidden='True')
 
 n = ui.NavigationView(m, navigation_bar_hidden=False, tint_color='white')
 n.objc_instance.navigationController().navigationBar().hidden = True
-n.present('fullscreen', hide_title_bar=True)
+n.present('full_screen', hide_title_bar=True)
 
 
 insets = n.objc_instance.safeAreaInsets()

@@ -5,7 +5,6 @@ from more_itertools import chunked, collapse
 import keyword
 
 import ui
-import objc_util
 
 
 def add_subviews(view, *subviews):
@@ -35,25 +34,6 @@ def apply_down(view, include_self=True, **kwargs):
         apply(view, **kwargs)
     for subview in view.subviews:
         apply_down(subview, **kwargs)
-
-def objc_color(self, color):
-    """ Convert any Pythonista color spec to an ObjC UIColor """
-    return objc_util.UIColor.colorWithRed_green_blue_alpha_(
-        *ui.parse_color(color))
-
-def py_color(self, objc_color):
-    """ Convert ObjC UIColor to Python (r, g, b, a) tuple """
-    return tuple([c.floatValue()
-        for c in 
-        objc_color.arrayFromRGBAComponents()])
-        if objc_color else None 
-        
-def safe_area(view):
-    """ Returns an intersection of the view's bounds and the iOS-defined safe
-    area. Note that if you want to set the view's frame based on the result,
-    you must first translate it to superview coordinates. """
-    insets = view.objc_instance.safeAreaInsets()
-    return view.bounds.inset(insets.top, insets.left, insets.bottom, insets.right)
 
 
 class GridView(ui.View):

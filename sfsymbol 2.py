@@ -17,8 +17,7 @@ SMALL, MEDIUM, LARGE = 1, 2, 3
 def SymbolImage(name, point_size=None, weight=None, scale=None):
     ''' Create a ui.Image from an SFSymbol name. Optional parameters:
         * `point_size` - Integer font size
-        * `weight` - Font weight, one of ULTRALIGHT, THIN, LIGHT, REGULAR, 
-        MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK
+        * `weight` - Font weight, one of ULTRALIGHT, THIN, LIGHT, REGULAR, MEDIUM, SEMIBOLD, BOLD, HEAVY, BLACK
         * `scale` - Size relative to font size, one of SMALL, MEDIUM, LARGE 
         
     Run the file to see a symbol browser.'''
