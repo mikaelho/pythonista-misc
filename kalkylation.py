@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_EVEN
 from functools import partial
 
 from sympy import solve, Eq
@@ -16,10 +16,14 @@ class Kalkylation:
         Symbolic result: 6
         Numeric result: 6.00
         
-        >>> Kalkylation("1 = 2+x")
+        >>> k = Kalkylation("1 = 2+x")
+        >>> k
         Input: 1 = 2 + x
         Symbolic result: -1
         Numeric result: -1.00
+        
+        >>> k.tokens
+        ['1', '=', '2', '+', 'x']
         
         >>> Kalkylation.result_decimals = '.000001'
         
